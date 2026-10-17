@@ -103,6 +103,7 @@ Targeting the player is confirmed; when the target lane is sampled and whether b
 
 1. Disable A/D. **Space alone** is active.
 2. Show **Ready**, then **Aim**, then **Fire**, with **Fire in green**.
+   Ready lasts one second; Aim lasts at least one second, then continues for a newly sampled random wait before Fire. The extra 0.25–1.5-second range is tuning, not a fixed rhythm.
 3. The player reacts to green Fire with a fresh Space press.
 4. A valid laser attack has **100% accuracy**. Damage depends on reaction delay from the green prompt; faster reactions deal more damage.
 5. A fresh Ready/Aim press ends the attack for **1 damage**. Space already held when Fire appears also ends it for **1 damage**. This supersedes the earlier Miss/zero rule; held keys cannot produce a full reaction attack.
@@ -113,7 +114,7 @@ The boss does **not** use the submarine circles. The old perfect/imperfect damag
 
 ### Decisions needed before boss timing implementation
 
-- Ready/Aim durations, any random variation, Fire expiry, and the no-response outcome.
+- Fire expiry, the no-response outcome, and tuning of the random pre-Fire wait.
 - Minimum/maximum damage and reaction-delay-to-damage formula.
 - Exact targeting behaviour, shot cadence, and projectile speed.
 

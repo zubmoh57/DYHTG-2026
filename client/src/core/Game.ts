@@ -57,11 +57,17 @@ const STAGE_INPUT: Record<Stage, { start: InputMode; allowed: readonly InputMode
   FAILED: { start: 'none', allowed: ['none'] },
 };
 
+const INSTRUCTION_STAGES: ReadonlySet<Stage> = new Set([
+  'RUNNER_1', 'UNDERWATER', 'RUNNER_2', 'BOSS',
+]);
+
 export interface FrameInfo {
   run: Readonly<RunState>;
   inputMode: InputMode;
   /** Seconds left on the countdown, or 0 when not counting down. */
   countdownSec: number;
+  /** Gameplay stays paused until a fresh Space press dismisses the instructions. */
+  waitingForInstructions: boolean;
 }
 
 export interface GameOptions {
@@ -100,6 +106,8 @@ export class Game {
   private startedAtMs = 0;
   private countdownEndsAt = 0;
   private lastFrameMs = 0;
+  private waitingForInstructions = false;
+  private inputAfterInstructions: InputMode = 'none';
   /** Stage changes asked for during a phase's update() are applied after it returns. */
   private pendingStage: Stage | null = null;
 
@@ -202,10 +210,16 @@ export class Game {
 
   private frame = (): void => {
     const now = performance.now();
+    const frameElapsedMs = now - this.lastFrameMs;
     // Clamp so a background tab or a long GC pause can't teleport anything through obstacles.
-    const dt = Math.min((now - this.lastFrameMs) / 1000, 0.1);
+    const dt = Math.min(frameElapsedMs / 1000, 0.1);
     this.lastFrameMs = now;
 
+    // Reading instructions must not add arbitrary time to a player's ranked run.
+    if (this.waitingForInstructions && this.state.status === 'running') {
+      this.startedAtMs += frameElapsedMs;
+    }
+    const continuePressed = this.waitingForInstructions && this.input.consumeContinuePress();
     this.input.beginFrame();
     updateElapsed(this.state, now, this.startedAtMs);
 
@@ -215,7 +229,12 @@ export class Game {
       this.goTo('RUNNER_1');
     }
 
-    this.phase?.update(dt);
+    if (continuePressed) {
+      this.waitingForInstructions = false;
+      this.setInputMode(this.inputAfterInstructions);
+    }
+    // The acknowledgement frame still belongs to the pause; gameplay advances next frame.
+    if (!this.waitingForInstructions) this.phase?.update(continuePressed ? 0 : dt);
     if (this.pendingStage) {
       const stage = this.pendingStage;
       this.pendingStage = null;
@@ -227,6 +246,7 @@ export class Game {
       run: this.state,
       inputMode: this.input.getMode(),
       countdownSec: this.state.stage === 'COUNTDOWN' ? Math.max(0, (this.countdownEndsAt - now) / 1000) : 0,
+      waitingForInstructions: this.waitingForInstructions,
     };
     this.frameListeners.forEach((l) => l(info));
 
@@ -248,6 +268,7 @@ export class Game {
     const previous = this.state.stage;
     this.pendingStage = null;
     this.exitPhase();
+    this.waitingForInstructions = false;
 
     this.state.stage = stage;
     if (stage !== 'FAILED') this.state.phase = STAGE_PHASE[stage];
@@ -266,6 +287,13 @@ export class Game {
       const token = ++this.phaseToken;
       this.phase = factory(this.makeContext(token));
       this.phase.enter();
+    }
+    if (INSTRUCTION_STAGES.has(stage)) {
+      // enter() prepares the scenery with course items hidden. Keep updates/input gated
+      // until the help is gone, preserving course positions, power-up time, and boss volleys.
+      this.inputAfterInstructions = this.input.getMode();
+      this.setInputMode('none');
+      this.waitingForInstructions = true;
     }
   }
 

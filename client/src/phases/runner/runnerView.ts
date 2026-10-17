@@ -137,6 +137,52 @@ export function makeCrumb(): THREE.Mesh {
   return slice;
 }
 
+/** A tiny bitmap font keeps the pickup label sharp without a downloaded font. */
+function makeExtraLifeLabel(): THREE.Sprite {
+  const glyphs: Record<string, number[]> = {
+    E: [31, 16, 16, 30, 16, 16, 31],
+    X: [17, 17, 10, 4, 10, 17, 17],
+    T: [31, 4, 4, 4, 4, 4, 4],
+    R: [30, 17, 17, 30, 20, 18, 17],
+    A: [14, 17, 17, 31, 17, 17, 17],
+    L: [16, 16, 16, 16, 16, 16, 31],
+    I: [31, 4, 4, 4, 4, 4, 31],
+    F: [31, 16, 16, 30, 16, 16, 16],
+  };
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 12;
+  const g = canvas.getContext('2d')!;
+  const draw = (color: string, offsetX: number, offsetY: number) => {
+    g.fillStyle = color;
+    let x = 2;
+    for (const character of 'EXTRA LIFE') {
+      if (character === ' ') { x += 4; continue; }
+      glyphs[character].forEach((row, y) => {
+        for (let col = 0; col < 5; col++) {
+          if (row & (1 << (4 - col))) g.fillRect(x + col + offsetX, y + 2 + offsetY, 1, 1);
+        }
+      });
+      x += 6;
+    }
+  };
+  for (let y = -1; y <= 1; y++) {
+    for (let x = -1; x <= 1; x++) draw('#510b29', x, y);
+  }
+  draw('#ff5a91', 0, 0);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, fog: false, toneMapped: false });
+  material.addEventListener('dispose', () => texture.dispose());
+  const label = new THREE.Sprite(material);
+  label.name = 'extra-life-label';
+  label.position.y = 1.15;
+  label.scale.set(3.6, 3.6 * canvas.height / canvas.width, 1);
+  return label;
+}
+
 export function makeHeart(): THREE.Mesh {
   const shape = new THREE.Shape();
   shape.moveTo(5, 5);
@@ -169,6 +215,7 @@ export function makeHeart(): THREE.Mesh {
   );
   heart.position.y = 1.1;
   heart.castShadow = true;
+  heart.add(makeExtraLifeLabel());
   return heart;
 }
 

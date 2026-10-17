@@ -26,6 +26,7 @@ The duck cannot move during the attack window. Preserve the original stage-speci
 - The laser has **100% accuracy** on a valid attack; do not calculate aim accuracy from the reaction time.
 - Damage depends on elapsed time between the green Fire prompt appearing and the player's Space press.
 - Faster reactions deal more damage.
+- Ready lasts one second. Aim lasts at least one second, with an additional random wait before green Fire so players must react rather than follow a fixed rhythm. The current extra wait is 0.25–1.5 seconds, adjustable in config.
 - A fresh press during Ready or Aim ends the attack and deals **1 damage**.
 - Space already held when Fire appears also ends the attack and deals **1 damage**. This latest clarification replaces the earlier Miss/zero-damage rule. A held key must never automatically produce a full reaction attack.
 - Do not allow keyboard repeat or repeated presses to produce multiple attacks within one reload window.
@@ -33,7 +34,7 @@ The duck cannot move during the attack window. Preserve the original stage-speci
 
 ### Still to decide before implementation
 
-- Ready/Aim durations, whether their timing varies, and how long the Fire window remains open.
+- How long the Fire response window remains open; tuning the random wait range.
 - Minimum and maximum damage, the reaction-time-to-damage formula, and the no-response outcome.
 
 Do not silently choose these as agreed game rules. Ask the team when implementing this mechanic.

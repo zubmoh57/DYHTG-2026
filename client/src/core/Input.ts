@@ -29,6 +29,11 @@ export class InputState {
     return this.mode;
   }
 
+  /** Menu-only Space edge: consume before beginFrame(), without enabling gameplay inputs. */
+  consumeContinuePress(): boolean {
+    return this.mode === 'none' && this.pressed.delete('space');
+  }
+
   /** Changing mode drops any press not yet consumed, so it can't leak into the next phase. */
   setMode(mode: InputMode): void {
     if (mode === this.mode) return;

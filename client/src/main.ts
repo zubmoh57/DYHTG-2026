@@ -8,6 +8,7 @@
 //   /?seed=42           solo practice on a specific course (rooms supply their own seed)
 
 import './ui/ui.css';
+import './ui/stageInstructions.css';
 import { Game } from './core/Game';
 import { OfflineRoomService } from './network/offlineRoomService';
 import { isSupabaseConfigured } from './network/supabase';
@@ -20,6 +21,7 @@ import { mountHud } from './ui/hud';
 import { mountLobby } from './ui/lobby';
 import { mountResults } from './ui/results';
 import { mountScoreboard } from './ui/scoreboard';
+import { mountStageInstructions } from './ui/stageInstructions';
 
 const params = new URLSearchParams(window.location.search);
 const soloSeed = Number(params.get('seed')) || 20261017;
@@ -38,6 +40,7 @@ const game = new Game({
 const ui = document.getElementById('ui')!;
 mountHud(ui, game);
 mountCountdown(ui, game);
+mountStageInstructions(ui, game);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).
 mountResults(ui, game, () => game.startAttempt());
 

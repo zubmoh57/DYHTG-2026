@@ -76,4 +76,46 @@ describe('InputState (brief §3)', () => {
     expect(input.keyDown('KeyW', false)).toBe(false);
     expect(input.keyDown('KeyA', false)).toBe(true);
   });
+
+  it('consumes a quick menu Space tap once without exposing it to gameplay', () => {
+    const input = new InputState();
+    input.keyDown('Space', false);
+    input.keyUp('Space'); // both events may arrive before the next render frame
+    expect(input.consumeContinuePress()).toBe(true);
+    expect(input.consumeContinuePress()).toBe(false);
+    input.setMode('timing');
+    expect(input.beginFrame().spacePressed).toBe(false);
+  });
+
+  it('requires a fresh press after a key held across the instruction boundary', () => {
+    const input = new InputState();
+    input.setMode('lanes');
+    input.keyDown('Space', false);
+    input.setMode('none'); // stage entry drops the old edge but preserves physical held state
+    input.keyDown('Space', true);
+    expect(input.consumeContinuePress()).toBe(false);
+    input.keyUp('Space');
+    input.keyDown('Space', false);
+    expect(input.consumeContinuePress()).toBe(true);
+    input.keyDown('Space', true);
+    expect(input.consumeContinuePress()).toBe(false);
+  });
+
+  it('does not steal Space presses from active gameplay', () => {
+    const input = new InputState();
+    input.setMode('timing');
+    input.keyDown('Space', false);
+    expect(input.consumeContinuePress()).toBe(false);
+    expect(input.beginFrame().spacePressed).toBe(true);
+  });
+
+  it('ignores lane keys and clears pending menu presses on focus loss', () => {
+    const input = new InputState();
+    input.keyDown('KeyA', false);
+    input.keyDown('KeyD', false);
+    expect(input.consumeContinuePress()).toBe(false);
+    input.keyDown('Space', false);
+    input.clear();
+    expect(input.consumeContinuePress()).toBe(false);
+  });
 });
