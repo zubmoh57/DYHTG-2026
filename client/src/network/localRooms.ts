@@ -19,6 +19,8 @@ export interface StoredRoom {
 }
 
 export interface StoredRun extends RunUpdate {
+  /** Kept with the run so a player who leaves after racing stays named on the board. */
+  nickname: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -122,6 +124,7 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
         updatedMs: now, // test rooms have no presence: nobody shows as disconnected
       })),
       now,
+      new Map(Object.entries(room.runs ?? {}).map(([userId, r]) => [userId, r.nickname])),
     );
   };
 
@@ -132,6 +135,8 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
   const refresh = () => {
     if (!info) return;
     const room = store.read(info.code);
+    // The host may have left and handed over to us: the lobby shows Start from info.isHost.
+    if (room) info.isHost = room.hostId === info.playerId;
     const list = players(room);
     playerListeners.forEach((l) => l(list));
     if (standingListeners.size) {
@@ -221,7 +226,8 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
       const previous = runs[info.playerId];
       if (previous && previous.attemptId === run.attemptId && previous.status !== 'running') return; // already final
       const now = Date.now();
-      runs[info.playerId] = { ...run, createdAt: previous?.attemptId === run.attemptId ? previous.createdAt : now, updatedAt: now };
+      const nickname = room.players.find((p) => p.id === info!.playerId)?.nickname ?? previous?.nickname ?? '';
+      runs[info.playerId] = { ...run, nickname, createdAt: previous?.attemptId === run.attemptId ? previous.createdAt : now, updatedAt: now };
       store.write(room);
       refresh();
     },
@@ -250,6 +256,8 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
       const room = store.read(info.code);
       if (room) {
         room.players = room.players.filter((p) => p.id !== info!.playerId);
+        // A leaving host hands over to the earliest joiner, like the online rooms (leave_room).
+        if (room.hostId === info.playerId && room.players.length > 0) room.hostId = room.players[0].id;
         if (room.players.length === 0) store.remove(room.code);
         else store.write(room); // brief §12: the host leaving doesn't cancel anyone's run
       }

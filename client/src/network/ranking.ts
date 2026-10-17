@@ -52,6 +52,8 @@ export interface ScoreboardEntry {
   /** 0..1 through that section. */
   progress: number;
   disconnected: boolean;
+  /** Left the room after racing: their result stays on the race leaderboard (rankStandings). */
+  left?: boolean;
 }
 
 /** How far through its section an attempt is, 0..1. */
@@ -112,15 +114,21 @@ export function rankScoreboard(
   return rows.map((r, i) => ({ ...r.entry, rank: i + 1 }));
 }
 
+/** What a player who left before we ever saw their name is called on the board. */
+export const LEFT_PLAYER_NAME = 'A duck who left';
+
 /**
  * The race leaderboard (Tejas): one race at a time, so `attempts` should be just this race's. Each
  * player shows their latest attempt in it; highest race score first (RunState.raceScore), then a
  * finish before a non-finish, then the faster time. Players with no attempt yet are on 0, "waiting".
+ * Someone who raced and then left the room keeps their row, marked `left`; `names` remembers the
+ * nicknames of players no longer in `players`.
  */
 export function rankStandings(
   players: readonly ScoreboardPlayer[],
   attempts: readonly ScoreboardAttempt[],
   serverNowMs: number,
+  names: ReadonlyMap<string, string> = new Map(),
 ): ScoreboardEntry[] {
   const latestByUser = new Map<string, ScoreboardAttempt>();
   for (const a of attempts) {
@@ -142,6 +150,23 @@ export function rankStandings(
       disconnected: serverNowMs - lastContact > DISCONNECT_AFTER_MS,
     };
   });
+  // Raced, then left the room: still on the board with this race's result.
+  const present = new Set(players.map((p) => p.userId));
+  for (const [userId, a] of latestByUser) {
+    if (present.has(userId)) continue;
+    rows.push({
+      rank: 0,
+      userId,
+      nickname: names.get(userId) ?? LEFT_PLAYER_NAME,
+      state: a.status,
+      timeMs: a.status === 'finished' ? a.elapsedMs : null,
+      score: a.score,
+      phase: a.phase,
+      progress: sectionProgress(a),
+      disconnected: true,
+      left: true,
+    });
+  }
   const done = (e: ScoreboardEntry) => (e.state === 'finished' ? 0 : 1);
   rows.sort(
     (a, b) =>

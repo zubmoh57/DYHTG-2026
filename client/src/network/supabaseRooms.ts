@@ -26,6 +26,9 @@ const REFRESH_DEBOUNCE_MS = 150;
 const CODE_PATTERN = /^[A-HJ-NP-Z]{4}$/;
 /** Start times this close together are the same race (reported twice, e.g. by the reply and by Realtime). */
 const SAME_RACE_MS = 5000;
+/** A run's final result (finished/failed) that fails to send is re-sent this often, up to this many times (about a minute). */
+export const FINAL_RETRY_MS = 2000;
+export const FINAL_RETRIES = 30;
 
 /** The error codes raised by the database functions, as messages the lobby can show as-is. */
 const ERROR_MESSAGES: Record<string, string> = {
@@ -106,6 +109,9 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
   const sentRuns = new Map<string, { seq: number; inserted: boolean; final: boolean }>();
   let nextRun: RunUpdate | null = null;
   let sendingRuns = false;
+  let finalRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Failed sends of each attempt's final result, so a result the server keeps refusing isn't retried forever. */
+  const finalFailures = new Map<string, number>();
 
   /** Calls a database function and records the server time it returns. */
   const call = async <T>(fn: string, args?: Record<string, unknown>): Promise<T> => {
@@ -194,8 +200,10 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
     if (heartbeat) clearInterval(heartbeat);
     if (refreshTimer) clearTimeout(refreshTimer);
     if (channel) void supabase.removeChannel(channel);
+    if (finalRetryTimer) clearTimeout(finalRetryTimer);
     heartbeat = null;
     refreshTimer = null;
+    finalRetryTimer = null;
     channel = null;
     current = null;
     startAt = null;
@@ -224,13 +232,16 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
     stopStandings = watchScoreboard(api, emitStandings);
   };
 
-  /** Sends one run update: the row is created (as 'running') on its first update, then updated. */
-  const sendRun = async (run: RunUpdate) => {
+  /**
+   * Sends one run update: the row is created (as 'running') on its first update, then updated.
+   * Returns false if it didn't reach the server.
+   */
+  const sendRun = async (run: RunUpdate): Promise<boolean> => {
     const room = current;
-    if (!room) return;
+    if (!room) return true; // left the room: nothing to send to
     const sent = sentRuns.get(run.attemptId) ?? { seq: 0, inserted: false, final: false };
     sentRuns.set(run.attemptId, sent);
-    if (sent.final) return;
+    if (sent.final) return true;
     const fields = {
       phase: run.phase,
       phase_progress: Math.min(1, Math.max(0, run.phaseProgress)),
@@ -245,10 +256,10 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
         .insert({ ...fields, room_id: room.roomId, client_attempt_id: run.attemptId, seq: sent.seq, status: 'running' });
       if (error) {
         console.warn('[rooms] could not start the attempt', error.message);
-        return; // tried again with the next update
+        return false; // tried again with the next update
       }
       sent.inserted = true;
-      if (run.status === 'running') return;
+      if (run.status === 'running') return true;
     }
     sent.seq += 1;
     const { error } = await supabase
@@ -256,8 +267,32 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
       .update({ ...fields, seq: sent.seq, status: run.status, fail_reason: run.status === 'failed' ? 'lives' : null })
       .eq('room_id', room.roomId)
       .eq('client_attempt_id', run.attemptId);
-    if (error) console.warn('[rooms] could not update the attempt', error.message);
-    else if (run.status !== 'running') sent.final = true;
+    if (error) {
+      console.warn('[rooms] could not update the attempt', error.message);
+      return false;
+    }
+    if (run.status !== 'running') sent.final = true;
+    return true;
+  };
+
+  /**
+   * The last update of a run is never followed by another, so if it fails nobody would re-send it and
+   * the player would show as "running" forever. Re-send it every couple of seconds until it lands.
+   */
+  const retryFinal = (run: RunUpdate) => {
+    const failures = (finalFailures.get(run.attemptId) ?? 0) + 1;
+    finalFailures.set(run.attemptId, failures);
+    if (failures > FINAL_RETRIES) {
+      console.warn('[rooms] gave up sending the final result after', FINAL_RETRIES, 'retries');
+      return;
+    }
+    if (finalRetryTimer) clearTimeout(finalRetryTimer);
+    finalRetryTimer = setTimeout(() => {
+      finalRetryTimer = null;
+      if (!current) return;
+      nextRun ??= run; // a newer update (a new attempt) goes first
+      void flushRuns();
+    }, FINAL_RETRY_MS);
   };
 
   /** One request at a time; only the newest waiting update is sent (older ones are out of date). */
@@ -268,7 +303,11 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
       while (nextRun) {
         const run = nextRun;
         nextRun = null;
-        await sendRun(run);
+        const delivered = await sendRun(run).catch((e: unknown) => {
+          console.warn('[rooms] could not send the run', e);
+          return false;
+        });
+        if (!delivered && run.status !== 'running') retryFinal(run);
       }
     } finally {
       sendingRuns = false;

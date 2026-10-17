@@ -39,11 +39,12 @@ export function mountStandings(): StandingsHandle {
           const classes = ['standing', r.state];
           if (r.userId === meId) classes.push('me');
           if (r.disconnected) classes.push('offline');
+          if (r.left) classes.push('left');
           return el('li', { className: classes.join(' ') }, [
             el('span', { className: 'place', text: anyScore && r.rank <= 3 ? MEDALS[r.rank - 1] : String(r.rank) }),
             el('span', { className: 'who' }, [
               el('span', { className: 'name', text: r.nickname + (r.userId === meId ? ' (you)' : '') }),
-              el('span', { className: 'chip', text: r.disconnected ? `${standingStatus(r)} · offline` : standingStatus(r) }),
+              el('span', { className: 'chip', text: r.left ? `${standingStatus(r)} · left` : r.disconnected ? `${standingStatus(r)} · offline` : standingStatus(r) }),
             ]),
             el('span', { className: 'points', text: r.score.toLocaleString() }),
           ]);

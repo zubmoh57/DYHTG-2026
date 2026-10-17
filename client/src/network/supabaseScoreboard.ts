@@ -55,6 +55,8 @@ export function watchScoreboard(rooms: OnlineRoomApi, listener: (entries: Scoreb
   const { supabase, clock } = rooms;
 
   let players: ScoreboardPlayer[] = [];
+  /** Every nickname seen in this room, so players who leave after racing keep their name on the board. */
+  const names = new Map<string, string>();
   const attempts = new Map<string, ScoreboardAttempt>();
   let loaded = false;
   let stopped = false;
@@ -65,7 +67,7 @@ export function watchScoreboard(rooms: OnlineRoomApi, listener: (entries: Scoreb
     // Only the latest race counts (Tejas): attempts created since it started. None before the first race.
     const since = rooms.raceStartServerMs();
     const race = since === null ? [] : [...attempts.values()].filter((a) => a.createdMs >= since - RACE_SLACK_MS);
-    const entries = rankStandings(players, race, clock.serverNow());
+    const entries = rankStandings(players, race, clock.serverNow(), names);
     const key = JSON.stringify(entries);
     if (key === lastKey) return;
     lastKey = key;
@@ -83,6 +85,7 @@ export function watchScoreboard(rooms: OnlineRoomApi, listener: (entries: Scoreb
       nickname: p.nickname,
       lastSeenMs: parseTimestamp(p.last_seen_at),
     }));
+    for (const p of players) names.set(p.userId, p.nickname);
   };
 
   const readAttempts = async () => {
