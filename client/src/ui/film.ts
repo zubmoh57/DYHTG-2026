@@ -58,6 +58,13 @@ export const shake = (x = 6): Keyframe[] => [
 ];
 const ms = (sec: number) => sec * 1000;
 
+/** How many films are on screen. While any is, body has .film-open and the 3D world isn't drawn. */
+let openFilms = 0;
+const setFilmOpen = (open: boolean) => {
+  openFilms = Math.max(0, openFilms + (open ? 1 : -1));
+  document.body.classList.toggle('film-open', openFilms > 0);
+};
+
 /** Build one shot and start all of its animations. Returns them so they can be seeked. */
 function playShot(shot: Shot, frame: HTMLElement, art: Record<string, string>): { node: HTMLElement; anims: Animation[] } {
   const node = el('div', { className: `shot scene-${shot.scene}` });
@@ -174,6 +181,7 @@ export function playFilm(
     cancelAnimationFrame(raf);
     window.removeEventListener('keydown', onKey, true);
     overlay.classList.add('closing');
+    setFilmOpen(false);
     if (options.music) audio.setMusicOverride(null);
     setTimeout(() => overlay.remove(), 450);
     if (!wasDone) onDone(frame);
@@ -256,6 +264,7 @@ export function playFilm(
   window.addEventListener('keydown', onKey, true);
 
   root.appendChild(overlay);
+  setFilmOpen(true);
   if (options.music) audio.setMusicOverride(options.music);
   cut(0);
   raf = requestAnimationFrame(tick);

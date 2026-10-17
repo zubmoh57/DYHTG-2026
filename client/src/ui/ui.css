@@ -628,7 +628,15 @@ body {
 
 /* Endings hold their last frame: dim it, clear the words, and put the results card on top. */
 .intro.held { cursor: default; }
-.intro.held .shot-cam { filter: brightness(0.55); transition: filter 0.4s; }
+/* A plain dark layer instead of a CSS filter: a filter would repaint the whole frame every time
+   the stars or confetti move. */
+.intro.held .shot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  animation: intro-in 0.4s ease-out;
+}
 .intro.held .shot .subtitle,
 .intro.held .shot .bubble,
 .intro.held .shot .fx { opacity: 0 !important; transition: opacity 0.3s; }
