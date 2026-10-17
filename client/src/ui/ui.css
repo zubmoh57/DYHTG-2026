@@ -254,6 +254,97 @@ body {
   }
 }
 
+/* Underwater: the sub's porthole frame around the view */
+.porthole {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 46%,
+    transparent 0,
+    transparent 43vmin,
+    #1d262e 43.4vmin,
+    #8795a1 44.6vmin,
+    #4b5864 46.4vmin,
+    #20282f 47.6vmin,
+    #121820 48.4vmin,
+    #0b1015 100%
+  );
+  transition: box-shadow 0.3s;
+}
+
+.porthole.boosting {
+  box-shadow: inset 0 0 140px rgba(90, 210, 255, 0.55);
+}
+
+/* Underwater timing ring: target, closing circle, live accuracy */
+.timing-ring {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.timing-ring.hidden {
+  display: none;
+}
+
+.timing-ring svg {
+  display: block;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.ring-target {
+  fill: rgba(255, 255, 255, 0.08);
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-dasharray: 6 5;
+}
+
+.ring-closing {
+  fill: none;
+  stroke-width: 6;
+  stroke: var(--bad);
+}
+
+.timing-ring[data-tier='ok'] .ring-closing {
+  stroke: #ffd23f;
+}
+
+.timing-ring[data-tier='great'] .ring-closing {
+  stroke: var(--good);
+}
+
+.ring-percent {
+  margin-top: -122px;
+  height: 44px;
+  font-size: 30px;
+}
+
+.ring-label {
+  margin-top: 70px;
+  font-size: 20px;
+  opacity: 0.85;
+}
+
+.timing-ring.locked .ring-label {
+  font-size: 26px;
+  opacity: 1;
+}
+
+.timing-ring.locked[data-tier='great'] .ring-label {
+  color: var(--good);
+}
+
+.timing-ring.locked[data-tier='bad'] .ring-label {
+  color: #ff8a8d;
+}
+
 /* Boss reload prompt: Ready → Aim → FIRE! (green) */
 .reaction {
   position: absolute;
@@ -272,6 +363,41 @@ body {
 .reaction.fire {
   background: var(--good);
   font-size: 84px;
+}
+
+.reaction.good,
+.reaction.bad {
+  font-size: 34px;
+}
+
+.reaction.good {
+  background: rgba(255, 62, 165, 0.75);
+}
+
+.reaction.bad {
+  background: rgba(229, 72, 77, 0.8);
+}
+
+.hud .boss-name {
+  margin-bottom: 4px;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.hud .boss-name span {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.hud .oxygen.low {
+  animation: oxygen-low 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes oxygen-low {
+  to {
+    opacity: 0.35;
+  }
 }
 
 .keys {

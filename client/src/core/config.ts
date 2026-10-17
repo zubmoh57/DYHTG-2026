@@ -37,14 +37,21 @@ export const CONFIG = {
     health: 30000, // confirmed (addendum §1)
     shotsPerVolley: 3, // confirmed: three single bullets per cycle
     shotIntervalSec: 1.5,
-    /** Reaction attack: Ready → Aim → Fire (green). Every number here is UNDECIDED (addendum §1). */
+    /**
+     * Reaction attack: Ready → Aim → Fire (green), decided by Zubair's sim/boss.ts.
+     * Agreed: early press or Space held at Fire = 1 damage (that lives in sim/boss.ts).
+     * Every number below is UNDECIDED (GAME_BRIEF "Decisions needed") and only feeds the sim's rules.
+     */
     reaction: {
       readySec: 0.8,
       aimSec: 0.8,
       fireWindowSec: 1.2,
       maxDamage: 10000, // at a 0 ms reaction
       minDamage: 1000, // at the end of the fire window
+      noPressDamage: 0,
     },
+    bulletSpeed: 15, // UNDECIDED: units per second
+    windUpSec: 0.5, // readable warning before each shot
   },
   timing: {
     perfectToleranceSec: 0.05, // underwater ring

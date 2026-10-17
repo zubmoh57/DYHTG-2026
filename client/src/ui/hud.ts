@@ -28,7 +28,11 @@ export function mountHud(root: HTMLElement, game: Game): void {
   const time = el('div');
   const score = el('div');
   const bossFill = el('div', { className: 'boss-fill' });
-  const boss = el('div', { className: 'boss' }, [el('div', { className: 'boss-bar' }, [bossFill])]);
+  const bossHp = el('span');
+  const boss = el('div', { className: 'boss' }, [
+    el('div', { className: 'boss-name' }, ['🐦 THE PIGEON ', bossHp]),
+    el('div', { className: 'boss-bar' }, [bossFill]),
+  ]);
   const hud = el('div', { className: 'hud' }, [
     el('div', {}, [lives, oxygen, stage]),
     el('div', {}, [time, score]),
@@ -53,12 +57,16 @@ export function mountHud(root: HTMLElement, game: Game): void {
     if (!visible) return;
 
     set(lives, '❤️'.repeat(run.lives));
-    set(oxygen, run.stage === 'UNDERWATER' ? '🫧'.repeat(run.oxygen) : '');
+    // Oxygen only matters inside the sub; it's separate from lives (brief §5).
+    const underwater = run.stage === 'UNDERWATER';
+    set(oxygen, underwater ? `O₂ ${'🫧'.repeat(run.oxygen)}${'·'.repeat(Math.max(0, 3 - run.oxygen))}` : '');
+    oxygen.className = underwater && run.oxygen === 1 ? 'oxygen low' : 'oxygen';
     set(stage, run.stage);
     set(time, formatTime(run.elapsedMs));
-    set(score, `${run.score} pts`);
+    set(score, `${run.score.toLocaleString()} pts`);
     set(keys, KEY_HINT[inputMode]);
     boss.style.display = run.stage === 'BOSS' ? '' : 'none';
+    set(bossHp, `${run.bossHealth.toLocaleString()} / ${CONFIG.boss.health.toLocaleString()}`);
     bossFill.style.width = `${(100 * run.bossHealth) / CONFIG.boss.health}%`;
   });
 }
