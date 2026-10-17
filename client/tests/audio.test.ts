@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CUE_SOUNDS, countdownTicked, musicFor, soundsFor } from '../src/audio/soundMap';
 import { SOUNDS } from '../src/audio/sounds';
+import { TRACKS } from '../src/audio/music';
 
 describe('audio sound map', () => {
   it('has a recipe for every sound a cue can play', () => {
@@ -54,5 +55,15 @@ describe('audio sound map', () => {
     }
     if (countdownTicked(last, 0)) ticks++;
     expect(ticks).toBe(3);
+  });
+
+  it('has a well-formed loop for every track', () => {
+    for (const track of Object.values(TRACKS)) {
+      for (const lane of [track.bass, track.lead, track.chords]) expect(lane.length % 16).toBe(0);
+      for (const lane of Object.values(track.drums)) expect(lane).toMatch(/^[x-]{16}$/);
+      const notes = [...track.bass, ...track.lead, ...track.chords.flat()].filter((n) => n !== null);
+      for (const n of notes) expect(n).toBeGreaterThanOrEqual(24);
+      expect(track.swing).toBeLessThan(0.5);
+    }
   });
 });
