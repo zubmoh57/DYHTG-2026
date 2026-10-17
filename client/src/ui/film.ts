@@ -134,7 +134,7 @@ export function playFilm(
   art: Record<string, string>,
   onDone: () => void,
   options: FilmOptions = {},
-): void {
+): { stop(): void } {
   const durs = shots.map((s) => s.dur);
   const total = durs.reduce((a, b) => a + b, 0);
   const timed = options.endsAt !== undefined;
@@ -226,4 +226,5 @@ export function playFilm(
   if (options.music) audio.setMusicOverride(options.music);
   cut(0);
   raf = requestAnimationFrame(tick);
+  return { stop: finish };
 }
