@@ -11,6 +11,21 @@ Bill is a duck in a suit who is lazy, scruffy and terrible with money. He fills 
 | `client/src/render/character.ts` | The 3D character. Implements the `CharacterView` interface from the brief |
 | `docs/character/bill.svg` | Clean 2D art for the lobby, results screen and pitch slides |
 | `docs/character/bill-concept-sheet.svg` | The same art with every part of his look labelled |
+| `client/character-preview.html` + `client/src/dev/character-preview.ts` | A dev page showing Bill in every pose |
+
+## See him in your browser
+
+You need Node 20.19+ or 22.12+ (check with `node -v`). After pulling:
+
+```bash
+cd client
+npm install
+npm run character
+```
+
+That opens `http://localhost:5173/character-preview.html`. It shows Bill and his ghost side by side, with a button for every pose. Drag to orbit and scroll to zoom. Adding `?pose=fly` to the URL starts on that pose. Press `Ctrl+C` in the terminal to stop it.
+
+The page loads `character.ts` directly, so it always shows the latest Bill.
 
 ## Using him in the game
 
