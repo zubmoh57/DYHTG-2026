@@ -47,3 +47,15 @@ A full run is about 65–80 s.
 ## Still undecided (unchanged)
 
 The boss timings, damage curve, no-press outcome, bullet aim and the 300,000-point score split. Placeholders are marked UNDECIDED in `client/src/core/config.ts`.
+
+## Multiplayer (rooms on phones)
+
+1. **Title screen:** a looping chase (Bill, Biscuit and the Don) behind the logo. Solo practice, Create room, or Join with a code.
+2. **Create room → the pond lobby.** Every player is a Bill floating on a pond, in their own coat colour. The host's screen shows a **QR code**; phones scan it, land on a "You're invited" screen, type a name and jump in.
+3. **Leaderboard** beside the pond: everyone on 0 before the first race.
+4. **The host starts the race.** Everyone watches the story intro on a shared clock, then plays the same course on their own device. On phones the controls are **◀ ▶ buttons** for lanes and a **scope button** to fire (still two actions: only the current mode's buttons show).
+5. **End of a run:** your score, your place (live while others are still racing) and the standings. Then **back to the pond** (button, or after 20 s), where the leaderboard shows the last race. The host can start the next race; new players can join between races.
+
+**Race score** (`RunState.raceScore`, ranks the leaderboard): 25,000 per section completed (pro rata; the boss by damage dealt) + 250 per coin + breadcrumbs. A finish adds 50,000 + 5,000 per life left + 1,000 per second under 2:00, so any finish beats any run that died.
+
+**Needs:** Supabase keys in `client/.env.local` and both migrations run (the second, `20261017210000_race_rounds.sql`, lets a room race again). Phones must be on the same Wi-Fi as the laptop running `npm run dev` (it now listens on the network, and the QR uses the laptop's network address). `VITE_PUBLIC_URL` overrides the QR's address for a deployed build.
