@@ -173,8 +173,11 @@ export function mountEndings(root: HTMLElement, game: Game, audio: AudioHandle):
   const play = (shots: Shot<EndingScene>[]) => {
     playing?.stop();
     const film = playFilm(root, audio, shots, ENDING_SCENES, (frame) => {
-      // The results card (ui/results.ts) is already up behind the film: bring it onto the last frame.
-      const card = [...root.children].find((n) => n.classList.contains('panel') && !n.classList.contains('lobby'));
+      // The results card (ui/results.ts, or ui/raceResults.ts in a room race) is already up behind the
+      // film: bring it onto the last frame.
+      const card =
+        [...root.children].find((n) => n.classList.contains('panel') && !n.classList.contains('lobby')) ??
+        root.querySelector('.race-results .card');
       if (card) {
         card.classList.add('end-card');
         frame.appendChild(card);
@@ -187,6 +190,10 @@ export function mountEndings(root: HTMLElement, game: Game, audio: AudioHandle):
     if (event.type === 'runFailed') cause = event.cause ?? 'log';
     else if (event.type === 'attemptStarted') {
       playing?.stop(); // Retry: straight back into the run
+      playing = null;
+    }
+    else if (event.type === 'stageChanged' && event.stage === 'LOBBY') {
+      playing?.stop(); // back to the menu or the room's pond
       playing = null;
     }
     else if (event.type === 'stageChanged' && event.stage === 'FAILED') play(DEATH_FILMS[cause]);

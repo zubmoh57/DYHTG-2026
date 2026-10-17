@@ -27,8 +27,7 @@ export function mountResults(root: HTMLElement, game: Game, options: ResultsOpti
     const finished = e.stage === 'FINISHED';
     if (finished && (bestMs === null || run.elapsedMs < bestMs)) bestMs = run.elapsedMs;
 
-<<<<<<< HEAD
-    const retry = el('button', { text: 'Retry' });
+    const retry = el('button', { text: finished ? 'Play again' : 'Retry' });
     onButton(retry, options.onRetry);
     const menu = el('button', { className: 'secondary', text: 'Main menu' });
     onButton(menu, () => {
@@ -36,10 +35,6 @@ export function mountResults(root: HTMLElement, game: Game, options: ResultsOpti
       panel = null;
       options.onMenu();
     });
-=======
-    const retry = el('button', { text: finished ? 'Play again' : 'Retry' });
-    onButton(retry, onRetry);
->>>>>>> 11b2166859c7a349d904bd93805d767c7a73e564
     panel = el('div', { className: 'panel' }, [
       el('h1', { text: finished ? 'Made it!' : 'Failed' }),
       el('p', {
