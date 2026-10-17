@@ -20,16 +20,19 @@ function arpeggio(s: Synth, notes: number[], step: number, type: OscillatorType,
 }
 
 export const SOUNDS: Record<SoundName, (s: Synth) => void> = {
-  laneChange: (s) => s.noise({ dur: 0.13, gain: 0.12, filter: { type: 'bandpass', freq: 700, to: 2600, q: 2 } }),
+  laneChange: (s) => s.noise({ dur: 0.08, gain: 0.13, filter: { type: 'bandpass', freq: 900, to: 3200, q: 2 } }),
 
   branchHit: (s) => {
-    s.tone({ freq: 170, to: 55, dur: 0.22, gain: 0.5 });
-    s.noise({ dur: 0.09, gain: 0.35, filter: { type: 'lowpass', freq: 900 } });
+    s.tone({ freq: 190, to: 45, dur: 0.16, gain: 0.6 });
+    s.noise({ dur: 0.07, gain: 0.45, filter: { type: 'lowpass', freq: 1200 } });
   },
 
   hurtQuack: (s) => {
-    quack(s, 1.35, 0.02, 0.12);
-    quack(s, 1.15, 0.13, 0.18);
+    // A thud, a harsh alarm blip, then a panicked double quack.
+    s.tone({ freq: 120, to: 40, dur: 0.18, gain: 0.5 });
+    s.tone({ freq: 880, to: 440, type: 'square', dur: 0.12, gain: 0.1, filter: { type: 'lowpass', freq: 3000 } });
+    quack(s, 1.45, 0.02, 0.09);
+    quack(s, 1.25, 0.1, 0.12);
   },
 
   crumb: (s) => {
@@ -162,8 +165,9 @@ export const SOUNDS: Record<SoundName, (s: Synth) => void> = {
   },
 
   laser: (s) => {
-    s.tone({ freq: 2200, to: 180, type: 'sawtooth', dur: 0.4, gain: 0.18, filter: { type: 'lowpass', freq: 5000 } });
-    s.tone({ freq: 2210, to: 175, type: 'square', dur: 0.4, gain: 0.1, detune: 25 });
+    s.tone({ freq: 2400, to: 140, type: 'sawtooth', dur: 0.3, gain: 0.2, filter: { type: 'lowpass', freq: 5000 } });
+    s.tone({ freq: 2410, to: 135, type: 'square', dur: 0.3, gain: 0.1, detune: 25 });
+    s.tone({ freq: 55, dur: 0.3, gain: 0.3, type: 'sawtooth', filter: { type: 'lowpass', freq: 300 } });
   },
 
   pigeonHurt: (s) => {
@@ -201,10 +205,15 @@ export const SOUNDS: Record<SoundName, (s: Synth) => void> = {
     quack(s, 0.8, 1.9, 0.3);
   },
 
-  countdownTick: (s) => s.tone({ freq: 660, dur: 0.14, gain: 0.2, type: 'square', filter: { type: 'lowpass', freq: 2000 } }),
+  countdownTick: (s) => {
+    s.tone({ freq: 660, dur: 0.1, gain: 0.22, type: 'square', filter: { type: 'lowpass', freq: 2500 } });
+    s.tone({ freq: 80, to: 40, dur: 0.15, gain: 0.4 });
+  },
 
   go: (s) => {
-    s.tone({ freq: 1320, dur: 0.4, gain: 0.22, type: 'square', filter: { type: 'lowpass', freq: 3000 } });
+    s.tone({ freq: 1320, dur: 0.3, gain: 0.22, type: 'square', filter: { type: 'lowpass', freq: 3000 } });
+    s.tone({ freq: 150, to: 40, dur: 0.3, gain: 0.6 });
+    s.noise({ dur: 0.3, gain: 0.25, filter: { type: 'highpass', freq: 3000 } });
     quack(s, 1.1, 0.05);
   },
 };
