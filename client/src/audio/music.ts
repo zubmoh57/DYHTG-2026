@@ -1,7 +1,7 @@
 // Looping background music, sequenced on the Web Audio clock (Vansh). One funk track per stage group,
 // plus a laid-back groove for the lobby.
 
-import type { MusicTrack } from './soundMap';
+import type { MusicMood, MusicTrack } from './soundMap';
 import { midiToFreq, type Synth } from './synth';
 
 /** One drum lane per voice; 'x' plays on that 16th, anything else rests. Lanes loop on their own length. */
@@ -29,6 +29,8 @@ export interface Track {
   /** Stab length in steps: short for clav chops, long for electric piano pads. */
   chordLen: number;
   drums: Drums;
+  /** Extra drums that join once the section gets tense (past halfway, or on your last life). */
+  tense?: Drums;
   /** Lowpass on the whole track: underwater sounds muffled. */
   cutoff: number;
 }
@@ -173,11 +175,25 @@ export class Music {
   private step = 0;
   private nextStepAt = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private filter: BiquadFilterNode | null = null;
+  private mood: MusicMood = { tempo: 1, tension: 0, danger: false };
+  /** Eased towards mood.tempo so speed-ups glide instead of jumping. */
+  private tempo = 1;
 
   constructor(private readonly synth: Synth) {}
 
   get current(): MusicTrack | null {
     return this.track;
+  }
+
+  /** Follow the run: tempo, tension and danger come from musicMood(). */
+  setMood(mood: MusicMood): void {
+    const opened = mood.tension !== this.mood.tension;
+    this.mood = mood;
+    if (opened && this.filter && this.track) {
+      const cutoff = TRACKS[this.track].cutoff * (0.6 + 0.6 * mood.tension);
+      this.filter.frequency.setTargetAtTime(cutoff, this.synth.now, 0.3);
+    }
   }
 
   /** Crossfade to a track (or to silence with null). Asking for the playing track does nothing. */
@@ -194,9 +210,11 @@ export class Music {
     bus.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.6);
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = def.cutoff;
+    filter.frequency.value = def.cutoff * (0.6 + 0.6 * this.mood.tension);
     bus.connect(filter).connect(this.synth.music);
     this.bus = bus;
+    this.filter = filter;
+    this.tempo = this.mood.tempo;
     this.step = 0;
     this.nextStepAt = ctx.currentTime + 0.05;
     this.timer = setInterval(() => this.schedule(def, bus), 25);
@@ -213,15 +231,17 @@ export class Music {
     bus.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
     setTimeout(() => bus.disconnect(), 700);
     this.bus = null;
+    this.filter = null;
   }
 
   private schedule(def: Track, bus: GainNode): void {
     const s = this.synth;
-    const stepSec = 60 / def.bpm / 4;
     // After a long tab switch, skip ahead rather than playing a burst of missed notes.
     if (this.nextStepAt < s.now) this.nextStepAt = s.now + 0.02;
     while (this.nextStepAt < s.now + LOOKAHEAD_SEC) {
       const i = this.step;
+      this.tempo += (this.mood.tempo - this.tempo) * 0.05;
+      const stepSec = 60 / (def.bpm * this.tempo) / 4;
       // Swing: push every off 16th late, which is what makes it groove instead of march.
       const at = this.nextStepAt - s.now + (i % 2 === 1 ? def.swing * stepSec : 0);
       this.playStep(def, bus, i, at, stepSec);
@@ -259,7 +279,17 @@ export class Music {
       s.tone({ freq: midiToFreq(lead), type: def.leadType, at, dur: stepSec * 1.7, gain: 0.05, detune: 9, dest });
     }
 
-    const d = def.drums;
+    this.playDrums(def.drums, dest, i, at);
+    if (def.tense && (this.mood.tension >= 0.5 || this.mood.danger)) this.playDrums(def.tense, dest, i, at);
+    // Last life: a heartbeat on every beat, lub-dub.
+    if (this.mood.danger && i % 4 === 0) {
+      s.tone({ freq: 70, to: 40, at, dur: 0.12, gain: 0.55, dest });
+      s.tone({ freq: 60, to: 35, at: at + 0.14, dur: 0.1, gain: 0.4, dest });
+    }
+  }
+
+  private playDrums(d: Drums, dest: GainNode, i: number, at: number): void {
+    const s = this.synth;
     if (hits(d.kick, i)) s.tone({ freq: 160, to: 42, at, dur: 0.16, gain: 0.7, dest });
     if (hits(d.snare, i)) {
       s.noise({ at, dur: 0.14, gain: 0.28, filter: { type: 'highpass', freq: 1400 }, dest });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CUE_SOUNDS, countdownTicked, musicFor, soundsFor } from '../src/audio/soundMap';
+import { CUE_SOUNDS, countdownTicked, musicFor, musicMood, soundsFor } from '../src/audio/soundMap';
+import { CONFIG } from '../src/core/config';
 import { SOUNDS } from '../src/audio/sounds';
 import { TRACKS } from '../src/audio/music';
 
@@ -65,5 +66,21 @@ describe('audio sound map', () => {
       for (const n of notes) expect(n).toBeGreaterThanOrEqual(24);
       expect(track.swing).toBeLessThan(0.5);
     }
+  });
+
+  it('speeds the runner music up with Bill and builds tension through a section', () => {
+    const base = { stage: 'RUNNER_1' as const, phaseDistance: 0, phaseLength: 100, lives: 3 };
+    const slow = musicMood({ ...base, runnerSpeed: CONFIG.runner.startSpeed });
+    const fast = musicMood({ ...base, runnerSpeed: CONFIG.runner.maxSpeed, phaseDistance: 90 });
+    expect(slow).toEqual({ tempo: 1, tension: 0, danger: false });
+    expect(fast.tempo).toBeCloseTo(1.2);
+    expect(fast.tension).toBeCloseTo(0.9);
+  });
+
+  it('turns the danger on for the last life', () => {
+    const mood = musicMood({ stage: 'UNDERWATER', runnerSpeed: 12, phaseDistance: 0, phaseLength: 100, lives: 1 });
+    expect(mood.danger).toBe(true);
+    expect(mood.tension).toBeGreaterThanOrEqual(0.8);
+    expect(mood.tempo).toBeGreaterThan(1);
   });
 });

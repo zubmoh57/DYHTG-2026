@@ -7,7 +7,7 @@
 import type { Game } from '../core/Game';
 import { onButton } from '../ui/dom';
 import { Music } from './music';
-import { countdownTicked, musicFor, soundsFor } from './soundMap';
+import { countdownTicked, musicFor, musicMood, soundsFor } from './soundMap';
 import { SOUNDS } from './sounds';
 import { Synth } from './synth';
 
@@ -94,7 +94,8 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
   });
 
   let lastCountdown = 0;
-  game.onFrame(({ countdownSec }) => {
+  game.onFrame(({ countdownSec, run }) => {
+    music?.setMood(musicMood(run));
     if (synth && countdownTicked(lastCountdown, countdownSec)) SOUNDS.countdownTick(synth);
     lastCountdown = countdownSec;
   });

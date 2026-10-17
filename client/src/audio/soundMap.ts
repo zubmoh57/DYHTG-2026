@@ -1,7 +1,8 @@
 // Which sound plays for which game event (Vansh). Pure: no Web Audio here, so it's unit-tested.
 // Audio only ever LISTENS to GameEvents, so nobody else has to call audio code (TEAM_SPLIT §5).
 
-import type { GameEvent, Stage } from '../core/types';
+import { CONFIG } from '../core/config';
+import type { GameEvent, RunState, Stage } from '../core/types';
 
 export type SoundName =
   | 'laneChange'
@@ -127,4 +128,33 @@ export function musicFor(stage: Stage): MusicTrack | null {
 /** True when the 3-2-1 countdown has just shown a new number (one tick per number). */
 export function countdownTicked(previousSec: number, sec: number): boolean {
   return sec > 0 && Math.ceil(sec) !== Math.ceil(previousSec);
+}
+
+/** How hard the music should push right now, so it follows the run instead of looping blindly. */
+export interface MusicMood {
+  /** Multiplies the track's bpm. */
+  tempo: number;
+  /** 0 = calm start of a section, 1 = about to finish it. Opens the filter and adds drum layers. */
+  tension: number;
+  /** On your last life: a heartbeat joins the track. */
+  danger: boolean;
+}
+
+type MoodInput = Pick<RunState, 'stage' | 'runnerSpeed' | 'phaseDistance' | 'phaseLength' | 'lives'>;
+
+export function musicMood(run: MoodInput): MusicMood {
+  const progress = run.phaseLength > 0 ? Math.min(1, Math.max(0, run.phaseDistance / run.phaseLength)) : 0;
+  const danger = run.lives === 1;
+  let tempo = 1;
+  if (run.stage === 'RUNNER_1' || run.stage === 'RUNNER_2') {
+    // The track speeds up with Bill: up to 20% faster at top speed.
+    const { startSpeed, maxSpeed } = CONFIG.runner;
+    const t = Math.min(1, Math.max(0, (run.runnerSpeed - startSpeed) / (maxSpeed - startSpeed)));
+    tempo = 1 + 0.2 * t;
+  } else if (run.stage === 'BOSS') {
+    // The closer Don Crumb is to falling, the faster the fight gets.
+    tempo = 1 + 0.12 * progress;
+  }
+  if (danger) tempo += 0.05;
+  return { tempo, tension: danger ? Math.max(progress, 0.8) : progress, danger };
 }
