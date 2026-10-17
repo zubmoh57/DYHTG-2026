@@ -2,6 +2,11 @@ import { CONFIG } from '../core/config';
 import type { Game } from '../core/Game';
 import type { Stage } from '../core/types';
 import { el } from './dom';
+import { usesTouch } from './touchControls';
+
+/** On phones the card names the on-screen buttons (ui/touchControls.ts) instead of keys. */
+const forTouch = (controls: string) =>
+  controls.replace(/A and D/g, '◀ ▶').replace(/Space on FIRE/g, '🎯 on FIRE').replace(/press Space/g, 'tap 🎯');
 
 interface Instructions {
   title: string;
@@ -35,6 +40,7 @@ const STAGE_INSTRUCTIONS: Partial<Record<Stage, Instructions>> = {
     controls: 'A and D to dodge · Space on FIRE',
   },
 };
+const touch = typeof window !== 'undefined' && usesTouch();
 
 /** The core's safe lead-in controls both this card's lifetime and the start of gameplay. */
 export function mountStageInstructions(root: HTMLElement, game: Game): void {
@@ -62,14 +68,14 @@ export function mountStageInstructions(root: HTMLElement, game: Game): void {
           ...(instructions.subtitle
             ? [el('p', { className: 'stage-instructions-goal', text: instructions.subtitle })]
             : []),
-          ...instructions.details.map((text) => el('p', { text })),
+          ...instructions.details.map((text) => el('p', { text: touch ? forTouch(text) : text })),
           el('p', { className: 'stage-instructions-controls' }, [
-            el('span', { className: 'stage-instructions-label', text: 'ALLOWED KEYS' }),
-            el('strong', { text: instructions.controls }),
+            el('span', { className: 'stage-instructions-label', text: touch ? 'BUTTONS' : 'ALLOWED KEYS' }),
+            el('strong', { text: touch ? forTouch(instructions.controls) : instructions.controls }),
           ]),
-          el('p', { className: 'stage-instructions-continue' }, [
-            'Press ', el('kbd', { text: 'SPACE' }), ' to continue',
-          ]),
+          el('p', { className: 'stage-instructions-continue' }, touch
+            ? ['Tap ', el('kbd', { text: 'Continue' }), ' to go']
+            : ['Press ', el('kbd', { text: 'SPACE' }), ' to continue']),
         );
       }
     }
