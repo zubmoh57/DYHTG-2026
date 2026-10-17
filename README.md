@@ -1,4 +1,4 @@
-# DYHTG-2026 
+# Duck Run
 Team 46 [AKA team monster] 
 8 - branches
 
