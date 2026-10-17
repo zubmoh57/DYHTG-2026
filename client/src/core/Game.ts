@@ -251,8 +251,11 @@ export class Game {
 
     this.state.stage = stage;
     if (stage !== 'FAILED') this.state.phase = STAGE_PHASE[stage];
-    this.state.phaseDistance = 0;
-    this.state.phaseLength = 0;
+    // A run that ends keeps how far it got, for its score and the room's leaderboard.
+    if (stage !== 'FAILED' && stage !== 'FINISHED') {
+      this.state.phaseDistance = 0;
+      this.state.phaseLength = 0;
+    }
     this.camera = this.defaultCamera;
     this.resetCamera();
     // Transitions pick Bill up from the lane the runner left him in, instead of snapping him to the middle.

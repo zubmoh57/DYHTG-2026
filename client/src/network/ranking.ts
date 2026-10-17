@@ -111,3 +111,44 @@ export function rankScoreboard(
 
   return rows.map((r, i) => ({ ...r.entry, rank: i + 1 }));
 }
+
+/**
+ * The race leaderboard (Tejas): one race at a time, so `attempts` should be just this race's. Each
+ * player shows their latest attempt in it; highest race score first (RunState.raceScore), then a
+ * finish before a non-finish, then the faster time. Players with no attempt yet are on 0, "waiting".
+ */
+export function rankStandings(
+  players: readonly ScoreboardPlayer[],
+  attempts: readonly ScoreboardAttempt[],
+  serverNowMs: number,
+): ScoreboardEntry[] {
+  const latestByUser = new Map<string, ScoreboardAttempt>();
+  for (const a of attempts) {
+    const l = latestByUser.get(a.userId);
+    if (!l || a.createdMs > l.createdMs) latestByUser.set(a.userId, a);
+  }
+  const rows = players.map((player): ScoreboardEntry => {
+    const a = latestByUser.get(player.userId);
+    const lastContact = Math.max(player.lastSeenMs, a?.updatedMs ?? 0);
+    return {
+      rank: 0,
+      userId: player.userId,
+      nickname: player.nickname,
+      state: a ? a.status : 'waiting',
+      timeMs: a?.status === 'finished' ? a.elapsedMs : null,
+      score: a?.score ?? 0,
+      phase: a?.phase ?? 'runner1',
+      progress: a ? sectionProgress(a) : 0,
+      disconnected: serverNowMs - lastContact > DISCONNECT_AFTER_MS,
+    };
+  });
+  const done = (e: ScoreboardEntry) => (e.state === 'finished' ? 0 : 1);
+  rows.sort(
+    (a, b) =>
+      b.score - a.score ||
+      done(a) - done(b) ||
+      (a.timeMs ?? Infinity) - (b.timeMs ?? Infinity) ||
+      a.nickname.localeCompare(b.nickname),
+  );
+  return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+}

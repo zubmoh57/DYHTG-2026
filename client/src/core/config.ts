@@ -65,6 +65,13 @@ export const CONFIG = {
     max: 300000, // confirmed cap (addendum §3); how the points are allocated is UNDECIDED
     perDistanceUnit: 10, // UNDECIDED: original brief's suggestion, not yet scaled to the cap
     perBreadcrumb: 100, // UNDECIDED: same
+    // The race score rooms are ranked by (RunState.raceScore). Tejas, for the multiplayer leaderboard.
+    perSection: 25000, // each of the 4 sections, pro rata (the boss by damage dealt)
+    perCoin: 250,
+    finishBonus: 50000,
+    perLifeLeft: 5000, // on a finish
+    parSec: 120, // a finish earns timeBonusPerSec for every second under this
+    timeBonusPerSec: 1000,
   },
   flow: {
     countdownSec: 3,

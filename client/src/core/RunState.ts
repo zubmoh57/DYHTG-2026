@@ -128,6 +128,36 @@ export function addScore(state: RunState, points: number): number {
   return delta;
 }
 
+/** Sections in run order (the scoreboard's PhaseId order). */
+const SECTIONS: readonly PhaseId[] = ['runner1', 'underwater', 'runner2', 'boss'];
+
+export type RaceScoreInput = Pick<
+  RunState,
+  'phase' | 'status' | 'phaseDistance' | 'phaseLength' | 'bossHealth' | 'coins' | 'score' | 'lives' | 'elapsedMs'
+>;
+
+/**
+ * The score rooms are ranked by (lobby leaderboard + live board). Distance through the run, coins
+ * and breadcrumbs; a finish adds a bonus, a time bonus and a bonus per life left, so any finish beats
+ * any run that died. Capped at CONFIG.score.max.
+ */
+export function raceScore(run: RaceScoreInput): number {
+  const s = CONFIG.score;
+  const section = Math.max(0, SECTIONS.indexOf(run.phase));
+  const through =
+    run.phase === 'boss'
+      ? (CONFIG.boss.health - run.bossHealth) / CONFIG.boss.health
+      : run.phaseLength > 0
+        ? run.phaseDistance / run.phaseLength
+        : 0;
+  let points = (section + Math.min(1, Math.max(0, through))) * s.perSection + run.coins * s.perCoin + run.score;
+  if (run.status === 'finished') {
+    points += s.finishBonus + run.lives * s.perLifeLeft;
+    points += Math.max(0, s.parSec - run.elapsedMs / 1000) * s.timeBonusPerSec;
+  }
+  return Math.min(s.max, Math.max(0, Math.round(points)));
+}
+
 /** Monotonic clock: elapsed time is measured from the attempt's start, never summed from frames. */
 export function updateElapsed(state: RunState, nowMs: number, startedAtMs: number): void {
   if (isRunning(state)) state.elapsedMs = Math.max(0, nowMs - startedAtMs);
