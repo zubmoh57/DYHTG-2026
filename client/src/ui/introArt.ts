@@ -1,6 +1,6 @@
 // Flat SVG art for the story intro (Vansh). Every scene is 400x225 and built from simple shapes,
 // in the same palette as the 3D Bill (render/character.ts) and the Don (phases/boss/pigeonView.ts).
-// Animation lives in ui.css under .intro, keyed off the class names used here.
+// Groups with an `a-` class are animated by the shot timeline in intro.ts; other classes are CSS loops.
 
 const C = {
   feathers: '#fdfaf2',
@@ -111,61 +111,74 @@ const sky = (top: string, bottom: string, id: string) =>
 
 const svg = (body: string) => `<svg viewBox="0 0 400 225" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
 
-/** One scene per story beat. Keys match the panels in intro.ts. */
+/** Coin positions in the pond shot; intro.ts times each pickup to when Bill swims past. */
+export const POND_COINS: [number, number][] = [
+  [120, 182], [150, 190], [180, 174], [210, 186], [240, 178], [270, 190], [300, 182],
+];
+
+/**
+ * One scene per shot. Groups with an `a-` class are moved by the shot timeline in intro.ts
+ * (Web Animations, so they can be seeked for rooms); the plain classes are idle CSS loops.
+ */
 export const SCENES = {
   bill: svg(`${sky('#ffd7a1', '#ff9f68', 'g1')}
-    <circle cx="320" cy="60" r="34" fill="#fff3c4"/>
+    <g class="a-sun"><circle cx="320" cy="60" r="34" fill="#fff3c4"/></g>
     <rect y="170" width="400" height="55" fill="#4fa3c7"/>
-    <path d="M0 176 Q50 170 100 176 T200 176 T300 176 T400 176" stroke="#bfe8ff" stroke-width="3" fill="none" class="ripple"/>
-    <g class="bob">${bill(200, 180, 1)}</g>
-    <text x="24" y="40" font-size="14" fill="#7a3d12" font-family="Georgia" font-style="italic" class="fade-in">*not a real banker*</text>`),
+    <path d="M0 176 Q50 170 100 176 T200 176 T300 176 T400 176 T500 176" stroke="#bfe8ff" stroke-width="3" fill="none" class="ripple"/>
+    <g class="a-bill">${bill(200, 180, 1)}</g>
+    <g class="a-joke"><text x="24" y="40" font-size="14" fill="#7a3d12" font-family="Georgia" font-style="italic">*not a real banker*</text></g>`),
 
   iou: svg(`${sky('#2b2233', '#151018', 'g2')}
-    <g class="drop-in" transform="rotate(-4 200 110)">
+    <g class="a-iou"><g transform="rotate(-4 200 110)">
       <rect x="110" y="34" width="180" height="150" rx="6" fill="#f7efd9"/>
       <text x="200" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="#3b2a1a" font-family="Georgia">I.O.U.</text>
       <text x="200" y="96" text-anchor="middle" font-size="13" fill="#3b2a1a" font-family="Georgia">1,000 breadcrumbs</text>
       <text x="200" y="114" text-anchor="middle" font-size="10" fill="#6b5a44" font-family="Georgia">payable to: The Don</text>
       <path d="M140 150 q12 -14 22 0 t22 0 t20 -4" stroke="#1d3a8a" stroke-width="2" fill="none"/>
       <text x="230" y="154" font-size="9" fill="#6b5a44" font-family="Georgia">(Bill)</text>
-    </g>
-    <g class="stamp" transform="rotate(-18 280 160)">
+    </g></g>
+    <g class="a-stamp"><g transform="rotate(-18 280 160)">
       <rect x="226" y="140" width="110" height="38" rx="6" fill="none" stroke="#d1242f" stroke-width="4"/>
       <text x="281" y="167" text-anchor="middle" font-size="20" font-weight="900" fill="#d1242f" font-family="Arial">400%/WK</text>
-    </g>`),
+    </g></g>`),
 
   don: svg(`${sky('#1b1b24', '#0d0d12', 'g3')}
-    <path d="M175 0 L225 0 L330 225 L70 225Z" fill="#fff6c8" opacity=".07"/>
+    <g class="a-light"><path d="M175 0 L225 0 L330 225 L70 225Z" fill="#fff6c8" opacity=".09"/></g>
     <rect x="0" y="182" width="400" height="43" fill="#2a1f18"/>
-    <g class="lean-in">${don(200, 196, 1.15, false)}</g>
+    <g class="a-don">${don(200, 196, 1.15, false)}</g>
     ${bread(80, 190, 0.9)}${bread(110, 196, 0.8)}${bread(330, 192, 0.85)}`),
 
   dog: svg(`${sky('#3a0f12', '#140405', 'g4')}
-    <g class="shake">${dog(200, 140, 1.5)}</g>
-    <g class="fade-in">${don(352, 220, 0.55, true)}</g>`),
+    <g class="a-dog">${dog(200, 140, 1.5)}</g>
+    <g class="a-don">${don(352, 220, 0.55, true)}</g>`),
 
   pond: svg(`${sky('#0b5f84', '#032338', 'g5')}
     <path d="M0 20 Q100 34 200 20 T400 20 L400 0 L0 0Z" fill="#6fd0f2" opacity=".5"/>
     <path d="M60 225 L90 120 L120 225Z" fill="#0e7a55" class="sway"/>
-    <path d="M300 225 L320 110 L345 225Z" fill="#0e7a55" class="sway"/>
-    ${[120, 160, 200, 240, 280, 180, 220].map((cx, i) => `<g class="glint" style="animation-delay:${i * 0.2}s"><circle cx="${cx}" cy="${190 - (i % 3) * 8}" r="10" fill="${C.gold}"/><text x="${cx}" y="${195 - (i % 3) * 8}" text-anchor="middle" font-size="11" font-weight="900" fill="#b8860b" font-family="Arial">$</text></g>`).join('')}
-    ${[40, 100, 330, 370].map((cx, i) => `<circle class="air" style="animation-delay:${i * 0.7}s" cx="${cx}" cy="200" r="${4 + (i % 2) * 3}" fill="none" stroke="#bfe8ff" stroke-width="1.5"/>`).join('')}
-    <g class="swim">${bill(80, 120, 0.5, 'cool')}</g>`),
+    <path d="M330 225 L350 110 L375 225Z" fill="#0e7a55" class="sway"/>
+    ${POND_COINS.map(([cx, cy], i) => `<g class="a-coin a-coin-${i}"><circle cx="${cx}" cy="${cy}" r="10" fill="${C.gold}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" font-weight="900" fill="#b8860b" font-family="Arial">$</text></g>`).join('')}
+    ${[40, 100, 300, 370].map((cx, i) => `<circle class="air" style="animation-delay:${i * 0.5}s" cx="${cx}" cy="200" r="${4 + (i % 2) * 3}" fill="none" stroke="#bfe8ff" stroke-width="1.5"/>`).join('')}
+    <g class="a-splash">${[-1, 0, 1].map((d) => `<circle cx="${70 + d * 14}" cy="18" r="${8 - Math.abs(d) * 2}" fill="#fff" opacity=".8"/>`).join('')}</g>
+    <g class="a-diver">${bill(70, 190, 0.5, 'cool')}</g>`),
 
   hook: svg(`${sky('#0b5f84', '#032338', 'g6')}
-    <g class="swing">
-      <line x1="250" y1="0" x2="250" y2="110" stroke="#ddd" stroke-width="1.5"/>
+    <g class="a-hook">
+      <line x1="250" y1="-60" x2="250" y2="110" stroke="#ddd" stroke-width="1.5"/>
       <path d="M250 110 q0 20 -12 20 q-12 0 -12 -12" stroke="#bbb" stroke-width="4" fill="none"/>
       <rect x="226" y="122" width="56" height="28" rx="3" fill="${C.cash}"/>
       <text x="254" y="142" text-anchor="middle" font-size="16" font-weight="900" fill="#1e5631" font-family="Arial">$1</text>
     </g>
-    <g class="lean-in">${bill(120, 220, 0.9, 'dollar')}</g>`),
+    <g class="a-bill">${bill(120, 220, 0.9, 'dollar')}</g>`),
 
   run: svg(`${sky('#ffcf8a', '#ff7f50', 'g7')}
+    <g class="a-scroll">
+      ${[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `<path d="M${i * 100} 168 l18 -40 l18 40z" fill="#3e8e5a" opacity=".55"/><path d="M${i * 100 + 50} 168 l10 -26 l10 26z" fill="#2f6f45" opacity=".55"/>`).join('')}
+    </g>
     <rect y="168" width="400" height="57" fill="#3f8fb5"/>
-    ${[150, 200, 120, 180, 140].map((sx, i) => `<line class="speed" style="animation-delay:${i * 0.08}s" x1="${sx}" y1="${70 + i * 18}" x2="${sx - 50}" y2="${70 + i * 18}" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>`).join('')}
-    <g class="dash">${bill(250, 178, 0.95, 'scared')}</g>
-    <g class="chase"><g transform="scale(-1 1)">${dog(-70, 150, 0.7)}</g></g>`),
+    <g class="a-scroll">${[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `<path d="M${i * 100} 190 q25 -6 50 0" stroke="#bfe8ff" stroke-width="3" fill="none"/>`).join('')}</g>
+    ${[150, 200, 120, 180, 140].map((sx, i) => `<line class="speed" style="animation-delay:${i * 0.06}s" x1="${sx}" y1="${70 + i * 18}" x2="${sx - 50}" y2="${70 + i * 18}" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>`).join('')}
+    <g class="a-runner">${bill(250, 178, 0.95, 'scared')}</g>
+    <g class="a-chaser"><g transform="scale(-1 1)">${dog(-70, 150, 0.7)}</g></g>`),
 };
 
 export type SceneName = keyof typeof SCENES;
