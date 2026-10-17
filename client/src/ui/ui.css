@@ -506,7 +506,9 @@ body {
 
 .shot-cam svg { display: block; width: 100%; height: 100%; }
 .shot-cam g[class^='a-'] { transform-box: fill-box; transform-origin: center; }
-.shot-cam .a-hook { transform-origin: top center; }
+.shot-cam g.a-hook { transform-origin: top center; }
+/* The Don topples over his feet; his flying hat must not move the pivot. */
+.shot-cam g.a-topple { transform-box: view-box; transform-origin: 215px 196px; }
 
 .shot .subtitle,
 .shot .bubble,
@@ -622,6 +624,46 @@ body {
   font: 800 12px/1 'Trebuchet MS', sans-serif;
   letter-spacing: 1px;
   opacity: 0.6;
+}
+
+/* Endings hold their last frame: dim it, clear the words, and put the results card on top. */
+.intro.held { cursor: default; }
+.intro.held .shot-cam { filter: brightness(0.55); transition: filter 0.4s; }
+.intro.held .shot .subtitle,
+.intro.held .shot .bubble,
+.intro.held .shot .fx { opacity: 0 !important; transition: opacity 0.3s; }
+
+.film .panel.end-card {
+  z-index: 2;
+  border: 4px solid #111;
+  border-radius: 10px;
+  background: #fffaf0;
+  box-shadow: 8px 8px 0 #111;
+  animation: end-card-in 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.film .panel.end-card h1 {
+  font: 900 clamp(26px, 4.5vw, 44px)/1 'Arial Black', Impact, sans-serif;
+  color: #ffcf33;
+  -webkit-text-stroke: 2px #111;
+  text-shadow: 4px 4px 0 #111;
+  text-transform: uppercase;
+}
+
+.film .panel.end-card p { font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif; }
+
+.film .panel.end-card button {
+  border: 3px solid #111;
+  box-shadow: 4px 4px 0 #111;
+  font: 900 18px/1 'Arial Black', Impact, sans-serif;
+  text-transform: uppercase;
+}
+
+.film .panel.end-card button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 #111; }
+
+@keyframes end-card-in {
+  from { transform: translate(-50%, -50%) scale(0.3) rotate(-6deg); opacity: 0; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
 }
 
 /* A thin video-style progress bar along the bottom. */

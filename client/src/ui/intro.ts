@@ -1,60 +1,10 @@
 // The story intro (Vansh): a short animated film before every first run, like the opening of a Mario
-// game. Each shot has a moving camera and characters on a timeline (Web Animations, so it runs on the
-// compositor and stays smooth), with comic subtitles and speech bubbles timed in. Shots hard-cut.
-// Solo: SPACE or a click cuts to the next shot, "Skip" ends it. Rooms: it plays on a fixed clock and
-// is seeked to match it, so everyone reaches the start line together.
-// It only uses SPACE and clicks, so the game's two-control rule holds.
+// game. Bill owes the Don, the Don sends the dog, and the pond is full of coins. The player is film.ts.
+// Rooms play it on a fixed clock that ends on the shared start, so everyone starts running together.
 
 import type { AudioHandle } from '../audio';
-import type { SoundName } from '../audio/soundMap';
-import { el, onButton } from './dom';
+import { OUT_BACK, SLAM, playFilm, shake, type Move, type Shot } from './film';
 import { POND_COINS, SCENES, type SceneName } from './introArt';
-
-interface Line {
-  /** Speaker name; narration has none and becomes a subtitle box. */
-  who?: string;
-  text: string;
-  /** Seconds into the shot when it pops in. */
-  t: number;
-  /** Speech bubbles only: where the bubble sits over the art, in % of the frame. */
-  at?: [number, number];
-  /** Which side the bubble's tail points from. */
-  tail?: 'left' | 'right';
-}
-
-/** One animated element in a shot: a CSS selector inside the shot, and its keyframes. */
-interface Move {
-  sel: string;
-  frames: Keyframe[];
-  /** Seconds; defaults to the whole shot. */
-  start?: number;
-  dur?: number;
-  easing?: string;
-  iterations?: number;
-}
-
-interface Shot {
-  scene: SceneName | 'title';
-  /** Seconds the shot lasts. */
-  dur: number;
-  /** Camera: the whole frame's transform at the start and end of the shot. */
-  camera?: [string, string];
-  moves?: Move[];
-  lines: Line[];
-  sound?: SoundName;
-  /** A big comic sound effect, e.g. WOOF!, popped over the art at [x%, y%] at time t. */
-  fx?: { text: string; at: [number, number]; t: number };
-}
-
-const OUT_BACK = 'cubic-bezier(0.2, 1.4, 0.4, 1)';
-const SLAM = 'cubic-bezier(0.3, 1.8, 0.5, 1)';
-const shake = (x = 6): Keyframe[] => [
-  { transform: 'translate(0, 0)' },
-  { transform: `translate(${-x}px, ${x / 2}px)` },
-  { transform: `translate(${x}px, ${-x / 2}px)` },
-  { transform: `translate(${-x / 2}px, ${x / 3}px)` },
-  { transform: 'translate(0, 0)' },
-];
 
 const POND_SEC = 2.6;
 /** Bill dives for the first quarter, then swims 250 units right; each coin vanishes as he reaches it. */
@@ -68,7 +18,7 @@ const coinPickups: Move[] = POND_COINS.map(([cx], i) => ({
   ],
 }));
 
-export const SHOTS: Shot[] = [
+export const SHOTS: Shot<SceneName>[] = [
   {
     scene: 'bill',
     dur: 2.3,
@@ -194,156 +144,7 @@ export interface IntroOptions {
   endsAt?: number;
 }
 
-const ms = (sec: number) => sec * 1000;
-
-/** Build one shot and start all of its animations. Returns them so they can be seeked. */
-function playShot(shot: Shot, frame: HTMLElement): { node: HTMLElement; anims: Animation[] } {
-  const node = el('div', { className: `shot scene-${shot.scene}` });
-  const cam = el('div', { className: 'shot-cam' });
-  cam.innerHTML =
-    shot.scene === 'title' ? '<div class="intro-title"><span>DUCK</span><span>RUN</span></div>' : SCENES[shot.scene];
-  node.appendChild(cam);
-
-  const anims: Animation[] = [];
-  // The first move on an element also holds its start pose before it begins; later moves on the same
-  // element only hold their end pose, so they don't overwrite the earlier one before their turn.
-  const moved = new Set<Element>();
-  const opts = (start = 0, dur = shot.dur, easing = 'ease-in-out', iterations = 1, first = true): KeyframeAnimationOptions => ({
-    delay: ms(start),
-    duration: ms(dur),
-    easing,
-    iterations,
-    fill: iterations === Infinity ? 'none' : first ? 'both' : 'forwards',
-  });
-
-  if (shot.camera) {
-    anims.push(cam.animate([{ transform: shot.camera[0] }, { transform: shot.camera[1] }], opts(0, shot.dur, 'ease-in-out')));
-  }
-  for (const m of shot.moves ?? []) {
-    cam.querySelectorAll<SVGElement>(m.sel).forEach((target) => {
-      anims.push(target.animate(m.frames, opts(m.start, m.dur, m.easing, m.iterations, !moved.has(target))));
-      moved.add(target);
-    });
-  }
-
-  let captions = 0;
-  for (const line of shot.lines) {
-    let box: HTMLElement;
-    if (line.who) {
-      box = el('div', { className: `bubble tail-${line.tail ?? 'left'}` }, [
-        el('span', { className: 'who', text: line.who }),
-        el('span', { text: line.text }),
-      ]);
-      const [x, y] = line.at ?? [50, 15];
-      box.style.left = `${x}%`;
-      box.style.top = `${y}%`;
-    } else {
-      box = el('div', { className: `subtitle n${captions++}`, text: line.text });
-    }
-    node.appendChild(box);
-    anims.push(box.animate([{ transform: 'scale(0.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], opts(line.t, 0.25, OUT_BACK)));
-  }
-  if (shot.fx) {
-    const fx = el('div', { className: 'fx', text: shot.fx.text });
-    fx.style.left = `${shot.fx.at[0]}%`;
-    fx.style.top = `${shot.fx.at[1]}%`;
-    node.appendChild(fx);
-    anims.push(fx.animate([{ transform: 'scale(0.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], opts(shot.fx.t, 0.3, SLAM)));
-  }
-
-  frame.appendChild(node);
-  return { node, anims };
-}
-
 /** Show the intro over `root`, then call onDone (after the last shot, a skip, or at endsAt). */
 export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): void {
-  const timed = options.endsAt !== undefined;
-  const startedAt = performance.now();
-  // Stretch or squeeze every shot evenly so the last one ends right on endsAt.
-  const stretch = timed ? Math.max(0.2, (options.endsAt! - startedAt) / 1000 / INTRO_SEC) : 1;
-
-  const frame = el('div', { className: 'film' });
-  const skip = el('button', { className: 'intro-skip', text: 'Skip ⏭' });
-  const hint = el('div', { className: 'intro-hint', text: 'SPACE ▸' });
-  const progress = el('div', { className: 'intro-progress' }, [el('span')]);
-  const overlay = el('div', { className: 'intro' }, [frame, progress, hint, skip]);
-  const bar = progress.firstElementChild as HTMLElement;
-  const barAnim = bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], {
-    duration: ms(INTRO_SEC * stretch),
-    fill: 'both',
-  });
-
-  let index = -1;
-  let current: { node: HTMLElement; anims: Animation[] } | null = null;
-  let shownAt = performance.now();
-  let raf = 0;
-  let done = false;
-
-  const finish = () => {
-    if (done) return;
-    done = true;
-    cancelAnimationFrame(raf);
-    window.removeEventListener('keydown', onKey, true);
-    overlay.classList.add('closing');
-    audio.setMusicOverride(null);
-    setTimeout(() => overlay.remove(), 450);
-    onDone();
-  };
-
-  /** Hard cut to shot i, starting `into` seconds in (rooms join the film where the clock says). */
-  const cut = (i: number, into = 0) => {
-    if (i >= SHOTS.length) return finish();
-    index = i;
-    shownAt = performance.now() - ms(into);
-    const old = current;
-    if (old) {
-      old.anims.forEach((a) => a.cancel());
-      old.node.remove();
-    }
-    current = playShot(SHOTS[i], frame);
-    if (into > 0) current.anims.forEach((a) => (a.currentTime = ms(into)));
-    if (stretch !== 1) current.anims.forEach((a) => (a.playbackRate = 1 / stretch));
-    // A white flash on every cut sells the hard edit.
-    frame.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 120 });
-    const sound = SHOTS[i].sound;
-    if (sound) audio.playSound(sound);
-  };
-
-  const onKey = (e: KeyboardEvent) => {
-    if (e.code !== 'Space') return;
-    e.preventDefault();
-    e.stopPropagation(); // the run hasn't started; keep SPACE to ourselves
-    if (!timed && !e.repeat) cut(index + 1);
-  };
-
-  const tick = (now: number) => {
-    if (timed) {
-      if (now >= options.endsAt!) return finish();
-      let t = (now - startedAt) / 1000;
-      let i = 0;
-      while (i < SHOTS.length - 1 && t >= PANEL_SEC[i] * stretch) t -= PANEL_SEC[i++] * stretch;
-      if (i !== index) cut(i, t / stretch);
-    } else {
-      if ((now - shownAt) / 1000 >= SHOTS[index].dur) cut(index + 1);
-      if (!done) barAnim.currentTime = ms(PANEL_SEC.slice(0, index).reduce((a, b) => a + b, 0) + (now - shownAt) / 1000);
-    }
-    if (!done) raf = requestAnimationFrame(tick);
-  };
-
-  if (timed) {
-    skip.remove();
-    hint.remove();
-  } else {
-    barAnim.pause();
-    onButton(skip, finish);
-    overlay.addEventListener('click', (e) => {
-      if (e.target !== skip) cut(index + 1);
-    });
-  }
-  window.addEventListener('keydown', onKey, true);
-
-  root.appendChild(overlay);
-  audio.setMusicOverride('intro');
-  cut(0);
-  raf = requestAnimationFrame(tick);
+  playFilm(root, audio, SHOTS, SCENES, onDone, { ...options, music: 'intro' });
 }

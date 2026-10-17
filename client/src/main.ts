@@ -20,6 +20,7 @@ import { createSupabaseRooms } from './network/supabaseRooms';
 import type { RoomApi, RoomInfo, RunUpdate } from './network/types';
 import { DEV_JUMPS, PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
+import { mountEndings } from './ui/endings';
 import { mountHud } from './ui/hud';
 import { INTRO_SEC, playIntro } from './ui/intro';
 import { mountLobby } from './ui/lobby';
@@ -48,6 +49,7 @@ mountHud(ui, game);
 mountCountdown(ui, game);
 mountTouchControls(ui, game);
 const audio = mountAudio(ui, game);
+mountEndings(ui, game, audio);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).
 // No 3-2-1 anywhere: the story intro is the build-up, and a retry drops you straight back in.
 const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });

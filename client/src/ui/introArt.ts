@@ -2,7 +2,7 @@
 // in the same palette as the 3D Bill (render/character.ts) and the Don (phases/boss/pigeonView.ts).
 // Groups with an `a-` class are animated by the shot timeline in intro.ts; other classes are CSS loops.
 
-const C = {
+export const C = {
   feathers: '#fdfaf2',
   beak: '#f39c32',
   coat: '#7a5c3e',
@@ -20,14 +20,16 @@ const C = {
   cash: '#7fb77e',
 };
 
-export type BillMood = 'cool' | 'scared' | 'dollar';
+export type BillMood = 'cool' | 'scared' | 'dollar' | 'ko';
 
 /** Bill, facing right, standing on (0, 0). About 150 tall at scale 1. */
 export function bill(x: number, y: number, scale = 1, mood: BillMood = 'cool'): string {
   const eyes =
     mood === 'cool'
       ? `<rect x="2" y="-112" width="30" height="11" rx="5" fill="${C.shades}"/><rect x="6" y="-110" width="8" height="3" rx="1.5" fill="#fff" opacity=".5"/>`
-      : mood === 'dollar'
+      : mood === 'ko'
+        ? `<path d="M4 -112 l10 10 m0 -10 l-10 10 M20 -112 l10 10 m0 -10 l-10 10" stroke="#222" stroke-width="3" stroke-linecap="round"/>`
+        : mood === 'dollar'
         ? `<text x="4" y="-100" font-size="18" font-weight="900" fill="#2e9d4f" font-family="Arial">$</text><text x="20" y="-100" font-size="18" font-weight="900" fill="#2e9d4f" font-family="Arial">$</text>`
         : `<circle cx="10" cy="-106" r="6" fill="#fff" stroke="#222" stroke-width="1.5"/><circle cx="26" cy="-106" r="6" fill="#fff" stroke="#222" stroke-width="1.5"/><circle cx="12" cy="-105" r="2.5" fill="#222"/><circle cx="28" cy="-105" r="2.5" fill="#222"/>
          <path class="sweat" d="M-14 -118 q-5 8 0 11 q5 -3 0 -11z" fill="#7fd3ff"/>`;
@@ -52,9 +54,22 @@ export function bill(x: number, y: number, scale = 1, mood: BillMood = 'cool'): 
   </g>`;
 }
 
-/** The Don, a mafia pigeon, facing left, standing on (0, 0). */
-export function don(x: number, y: number, scale = 1, angry = false): string {
-  const brow = angry
+/** The Don, a mafia pigeon, facing left, standing on (0, 0). Knocked out: X eyes, and his hat is
+ * its own `a-hat` group so it can fly off. */
+export function don(x: number, y: number, scale = 1, angry = false, ko = false): string {
+  const eye = ko
+    ? `<path d="M-18 -116 l10 10 m0 -10 l-10 10" stroke="#222" stroke-width="3" stroke-linecap="round"/>`
+    : `<circle cx="-12" cy="-110" r="6" fill="#fff"/><circle cx="-14" cy="-109" r="3" fill="#c23"/>`;
+  const cigar = ko
+    ? ''
+    : `<rect x="-62" y="-97" width="22" height="6" rx="2" fill="#7a4a24"/>
+    <circle cx="-62" cy="-94" r="3.5" fill="#ff7a2f" class="ember"/>
+    <circle class="smoke s1" cx="-64" cy="-104" r="5" fill="#ccc" opacity=".6"/>
+    <circle class="smoke s2" cx="-60" cy="-112" r="7" fill="#ccc" opacity=".45"/>`;
+  const hat = `<rect x="-24" y="-140" width="48" height="22" rx="4" fill="${C.felt}"/>
+    <rect x="-24" y="-124" width="48" height="5" fill="#b3202a"/>
+    <ellipse cx="0" cy="-118" rx="40" ry="7" fill="${C.felt}"/>`;
+  const brow = ko ? '' : angry
     ? `<path d="M-22 -120 L-4 -112" stroke="#222" stroke-width="4" stroke-linecap="round"/>`
     : `<path d="M-22 -116 L-4 -116" stroke="#222" stroke-width="3" stroke-linecap="round"/>`;
   return `<g transform="translate(${x} ${y}) scale(${scale})">
@@ -68,15 +83,10 @@ export function don(x: number, y: number, scale = 1, angry = false): string {
     <ellipse cx="0" cy="-86" rx="24" ry="10" fill="${C.neck}"/>
     <circle cx="0" cy="-108" r="27" fill="${C.pigeon}"/>
     <path d="M-20 -104 Q-50 -100 -48 -94 Q-40 -90 -20 -94Z" fill="#2e2e33"/>
-    <circle cx="-12" cy="-110" r="6" fill="#fff"/><circle cx="-14" cy="-109" r="3" fill="#c23"/>
+    ${eye}
     ${brow}
-    <rect x="-62" y="-97" width="22" height="6" rx="2" fill="#7a4a24"/>
-    <circle cx="-62" cy="-94" r="3.5" fill="#ff7a2f" class="ember"/>
-    <circle class="smoke s1" cx="-64" cy="-104" r="5" fill="#ccc" opacity=".6"/>
-    <circle class="smoke s2" cx="-60" cy="-112" r="7" fill="#ccc" opacity=".45"/>
-    <rect x="-24" y="-140" width="48" height="22" rx="4" fill="${C.felt}"/>
-    <rect x="-24" y="-124" width="48" height="5" fill="#b3202a"/>
-    <ellipse cx="0" cy="-118" rx="40" ry="7" fill="${C.felt}"/>
+    ${cigar}
+    ${ko ? `<g class="a-hat">${hat}</g>` : hat}
   </g>`;
 }
 
@@ -98,18 +108,18 @@ export function dog(x: number, y: number, scale = 1): string {
   </g>`;
 }
 
-function bread(x: number, y: number, scale = 1): string {
+export function bread(x: number, y: number, scale = 1): string {
   return `<g transform="translate(${x} ${y}) scale(${scale})">
     <path d="M-20 0 Q-24 -22 0 -22 Q24 -22 20 0Z" fill="#d99a4e"/>
     <path d="M-16 -2 Q-18 -16 0 -16 Q18 -16 16 -2Z" fill="#f6dfb0"/>
   </g>`;
 }
 
-const sky = (top: string, bottom: string, id: string) =>
+export const sky = (top: string, bottom: string, id: string) =>
   `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient></defs>
    <rect width="400" height="225" fill="url(#${id})"/>`;
 
-const svg = (body: string) => `<svg viewBox="0 0 400 225" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
+export const svg = (body: string) => `<svg viewBox="0 0 400 225" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
 
 /** Coin positions in the pond shot; intro.ts times each pickup to when Bill swims past. */
 export const POND_COINS: [number, number][] = [
