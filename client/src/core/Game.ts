@@ -156,6 +156,20 @@ export class Game {
     this.renderer.setAnimationLoop(this.frame);
   }
 
+  /**
+   * Join a room's challenge: its seed decides the course for everyone in it (brief §9).
+   * Only allowed between runs, so nobody's course changes mid-attempt.
+   */
+  setIdentity(identity: RunIdentity): void {
+    if (this.state.status === 'running' || this.state.stage === 'COUNTDOWN') {
+      console.warn('[core] setIdentity() ignored during a run');
+      return;
+    }
+    this.state.roomId = identity.roomId;
+    this.state.playerId = identity.playerId;
+    this.state.seed = identity.seed;
+  }
+
   /** A fresh attempt on the same course: used for the first start and for every retry. */
   startAttempt(options: StartOptions = {}): void {
     const attemptId = `a${Date.now().toString(36)}${(attemptCounter++).toString(36)}`;

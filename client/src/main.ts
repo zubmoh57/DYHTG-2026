@@ -1,11 +1,16 @@
-// Entry point (Tejas). Wires the game, the overlay screens and the dev shortcuts together.
+// Entry point (Tejas). Wires the game, the overlay screens, rooms and the dev shortcuts together.
 //
+// URLs:
+//   /?room=QUAK         open the lobby with a room code filled in (invite links)
 // Dev URLs:
 //   /?phase=boss        jump straight into a stage (runner1, sub-entry, underwater, surface-return, runner2, boss)
-//   /?seed=42           play a specific course (rooms will supply the seed later)
+//   /?short             runners at a fifth of their length
+//   /?seed=42           solo practice on a specific course (rooms supply their own seed)
 
 import './ui/ui.css';
 import { Game } from './core/Game';
+import { createLocalRooms } from './network/localRooms';
+import type { RoomApi } from './network/types';
 import { DEV_JUMPS, PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
 import { mountHud } from './ui/hud';
@@ -13,21 +18,37 @@ import { mountLobby } from './ui/lobby';
 import { mountResults } from './ui/results';
 
 const params = new URLSearchParams(window.location.search);
-const seed = Number(params.get('seed')) || 20261017;
+const soloSeed = Number(params.get('seed')) || 20261017;
+
+// Swap this one line for the Supabase RoomApi when Mayank + Rayyan's backend is ready.
+const rooms: RoomApi = createLocalRooms();
 
 const game = new Game({
   container: document.getElementById('game')!,
-  identity: { roomId: 'local', playerId: 'local', seed },
+  identity: { roomId: 'solo', playerId: 'solo', seed: soloSeed },
   phases: PHASES,
 });
 
 const ui = document.getElementById('ui')!;
 mountHud(ui, game);
 mountCountdown(ui, game);
+// Retry restarts only this player, on the same course, without waiting for the host (brief §7).
 mountResults(ui, game, () => game.startAttempt());
-const lobby = mountLobby(ui, () => {
-  lobby.hide();
-  game.startAttempt();
+
+const lobby = mountLobby(ui, {
+  rooms,
+  initialCode: params.get('room') ?? undefined,
+  onSolo: () => {
+    lobby.hide();
+    game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
+    game.startAttempt();
+  },
+  onRoomStart: (room, startAtEpochMs) => {
+    lobby.hide();
+    game.setIdentity({ roomId: room.code, playerId: room.playerId, seed: room.seed });
+    // Convert the shared wall-clock start time into this tab's performance.now() clock.
+    game.startAttempt({ countdownEndsAt: performance.now() + (startAtEpochMs - Date.now()) });
+  },
 });
 
 game.start();
