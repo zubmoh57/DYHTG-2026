@@ -11,6 +11,7 @@ This is the current split supplied by the team, replacing the generic Dev 1–5 
 
 ## Integration boundaries
 
+- Latest clarification for Zubair's contribution: Tejas owns its frontend scenes, animation, UI, and input wiring. Zubair supplies gameplay state/rules; see [ZUBAIR_BASE.md](ZUBAIR_BASE.md). This supersedes any assumption that Zubair is building frontend previews or stage rendering.
 - The timing ring serves the underwater circle mechanic. The boss uses Ready → Aim → green Fire reaction timing.
 - Tejas coordinates core integration; Zubair implements his assigned stage/transition behaviour against the agreed integration contract.
 - Coordinate shared types, input routing, lives, oxygen, scoring, and phase names before changing common interfaces. Exact file ownership remains to be agreed.

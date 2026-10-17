@@ -105,7 +105,7 @@ Targeting the player is confirmed; when the target lane is sampled and whether b
 2. Show **Ready**, then **Aim**, then **Fire**, with **Fire in green**.
 3. The player reacts to green Fire with a fresh Space press.
 4. A valid laser attack has **100% accuracy**. Damage depends on reaction delay from the green prompt; faster reactions deal more damage.
-5. Holding Space produces **Miss** and **zero damage**. A held key cannot automatically attack when Fire appears.
+5. A fresh Ready/Aim press ends the attack for **1 damage**. Space already held when Fire appears also ends it for **1 damage**. This supersedes the earlier Miss/zero rule; held keys cannot produce a full reaction attack.
 6. Resolve damage once per reload window. Repeated presses/keyboard repeat cannot produce extra attacks.
 7. Repeat until the boss is defeated or the attempt fails.
 
@@ -113,8 +113,6 @@ The boss does **not** use the submarine circles. The old perfect/imperfect damag
 
 ### Decisions needed before boss timing implementation
 
-- Does a Ready/Aim press immediately consume the attack as a miss?
-- Does Space held at reload entry immediately cause a miss, or only if held when Fire appears?
 - Ready/Aim durations, any random variation, Fire expiry, and the no-response outcome.
 - Minimum/maximum damage and reaction-delay-to-damage formula.
 - Exact targeting behaviour, shot cadence, and projectile speed.
@@ -193,7 +191,7 @@ Coordinate implementation/tests with Vansh. Verify confirmed rules rather than p
 - Heart grants one life only on collection, once; no automatic boss healing.
 - Underwater thresholds, one attempt/window, fresh presses, existing boosts survive failures.
 - Three single player-targeted bullets/cycle; no damaging bullets during attack.
-- Green Fire reaction timing; faster valid reactions deal more damage; held Space gives Miss/zero damage.
+- Green Fire reaction timing; faster valid reactions deal more damage; early presses or Space held when Fire appears end the attack for one damage.
 - Completion displays score/time; scoring respects 300,000 once the formula is agreed.
 - Room, scoring, retry, persistence checks after their contracts are agreed.
 
