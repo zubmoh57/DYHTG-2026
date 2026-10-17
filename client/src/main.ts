@@ -15,7 +15,7 @@ import type { RoomApi } from './network/types';
 import { DEV_JUMPS, PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
 import { mountHud } from './ui/hud';
-import { playIntro } from './ui/intro';
+import { INTRO_SEC, playIntro } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountResults } from './ui/results';
 
@@ -36,7 +36,9 @@ mountHud(ui, game);
 mountCountdown(ui, game);
 const audio = mountAudio(ui, game);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).
-mountResults(ui, game, () => game.startAttempt());
+// No 3-2-1 anywhere: the story intro is the build-up, and a retry drops you straight back in.
+const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });
+mountResults(ui, game, runNow);
 
 const lobby = mountLobby(ui, {
   rooms,
@@ -44,17 +46,18 @@ const lobby = mountLobby(ui, {
   footer: audio.volumeControl,
   onSolo: () => {
     lobby.hide();
-    // The story first (Vansh); Skip or SPACE gets you to the run. Rooms skip it to keep the shared start.
-    playIntro(ui, audio, () => {
-      game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
-      game.startAttempt();
-    });
+    // The story first (Vansh), then Bill starts running. Skip or SPACE gets you there sooner.
+    game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
+    playIntro(ui, audio, runNow);
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
     game.setIdentity({ roomId: room.code, playerId: room.playerId, seed: room.seed });
-    // Convert the shared wall-clock start time into this tab's performance.now() clock.
-    game.startAttempt({ countdownEndsAt: performance.now() + (startAtEpochMs - Date.now()) });
+    // Convert the shared wall-clock start time into this tab's performance.now() clock. Everyone watches
+    // the same intro on a timeline that ends on the shared start, then the run begins with no 3-2-1.
+    const startsAt = performance.now() + (startAtEpochMs - Date.now()) + INTRO_SEC * 1000;
+    game.startAttempt({ countdownEndsAt: startsAt });
+    playIntro(ui, audio, () => {}, { endsAt: startsAt });
   },
 });
 
