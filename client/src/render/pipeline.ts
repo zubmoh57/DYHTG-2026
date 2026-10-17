@@ -18,7 +18,9 @@ export class RenderPipeline {
   /** `environment`: a scene to capture for reflections (e.g. the sky). Defaults to a soft studio. */
   constructor(container: HTMLElement, scene: THREE.Scene, camera: THREE.Camera, environment?: THREE.Scene) {
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    // Phones render bloom and shadows at a lower resolution so multiplayer stays smooth on them.
+    const phone = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, phone ? 1.25 : 1.75));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true;

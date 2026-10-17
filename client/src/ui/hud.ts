@@ -4,7 +4,7 @@
 import type { Game } from '../core/Game';
 import { CONFIG } from '../core/config';
 import type { InputMode, Stage } from '../core/types';
-import { powerUpFor } from '../core/RunState';
+import { powerUpFor, raceScore } from '../core/RunState';
 import type { PowerUp } from '../core/types';
 import { el, formatTime } from './dom';
 
@@ -104,7 +104,7 @@ export function mountHud(root: HTMLElement, game: Game): void {
     set(power, afterSwim && run.stage !== 'BOSS' ? POWER_LABEL[powerUpFor(run.coins)] : '');
     set(stage, run.stage);
     set(time, formatTime(run.elapsedMs));
-    set(score, `${run.score.toLocaleString()} pts`);
+    set(score, `${raceScore(run).toLocaleString()} pts`); // the race score rooms rank by
     set(keys, KEY_HINT[inputMode]);
     boss.style.display = run.stage === 'BOSS' ? '' : 'none';
     set(bossHp, `${run.bossHealth.toLocaleString()} / ${CONFIG.boss.health.toLocaleString()}`);
