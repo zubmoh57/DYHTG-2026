@@ -15,6 +15,7 @@ import type { RoomApi } from './network/types';
 import { DEV_JUMPS, PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
 import { mountHud } from './ui/hud';
+import { playIntro } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountResults } from './ui/results';
 
@@ -43,8 +44,11 @@ const lobby = mountLobby(ui, {
   footer: audio.volumeControl,
   onSolo: () => {
     lobby.hide();
-    game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
-    game.startAttempt();
+    // The story first (Vansh); Skip or SPACE gets you to the run. Rooms skip it to keep the shared start.
+    playIntro(ui, audio, () => {
+      game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
+      game.startAttempt();
+    });
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
