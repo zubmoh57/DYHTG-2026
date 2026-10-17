@@ -261,97 +261,6 @@ body {
   }
 }
 
-/* Underwater: the sub's porthole frame around the view */
-.porthole {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at 50% 46%,
-    transparent 0,
-    transparent 43vmin,
-    #1d262e 43.4vmin,
-    #8795a1 44.6vmin,
-    #4b5864 46.4vmin,
-    #20282f 47.6vmin,
-    #121820 48.4vmin,
-    #0b1015 100%
-  );
-  transition: box-shadow 0.3s;
-}
-
-.porthole.boosting {
-  box-shadow: inset 0 0 140px rgba(90, 210, 255, 0.55);
-}
-
-/* Underwater timing ring: target, closing circle, live accuracy */
-.timing-ring {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: #fff;
-  font-weight: bold;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-.timing-ring.hidden {
-  display: none;
-}
-
-.timing-ring svg {
-  display: block;
-  margin: 0 auto;
-  overflow: visible;
-}
-
-.ring-target {
-  fill: rgba(255, 255, 255, 0.08);
-  stroke: #fff;
-  stroke-width: 4;
-  stroke-dasharray: 6 5;
-}
-
-.ring-closing {
-  fill: none;
-  stroke-width: 6;
-  stroke: var(--bad);
-}
-
-.timing-ring[data-tier='ok'] .ring-closing {
-  stroke: #ffd23f;
-}
-
-.timing-ring[data-tier='great'] .ring-closing {
-  stroke: var(--good);
-}
-
-.ring-percent {
-  margin-top: -122px;
-  height: 44px;
-  font-size: 30px;
-}
-
-.ring-label {
-  margin-top: 70px;
-  font-size: 20px;
-  opacity: 0.85;
-}
-
-.timing-ring.locked .ring-label {
-  font-size: 26px;
-  opacity: 1;
-}
-
-.timing-ring.locked[data-tier='great'] .ring-label {
-  color: var(--good);
-}
-
-.timing-ring.locked[data-tier='bad'] .ring-label {
-  color: #ff8a8d;
-}
-
 /* Boss reload prompt: Ready → Aim → FIRE! (green) */
 .reaction {
   position: absolute;
@@ -423,4 +332,118 @@ body {
 
 .keys:empty {
   display: none;
+}
+
+/* Big call-outs during a run (power-ups, the dog) */
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 64%; /* below the action, so it never covers Bill or the boss's face */
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-radius: 14px;
+  background: rgba(20, 28, 40, 0.72);
+  color: #fff;
+  font-size: 30px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast.good {
+  background: rgba(30, 150, 90, 0.85);
+}
+
+.toast.bad {
+  background: rgba(200, 60, 60, 0.85);
+}
+
+.toast.leaving {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+  }
+}
+
+/* Speed lines while boosted */
+.speed-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 255, 255, 0.16) 0deg 1.2deg, transparent 1.2deg 9deg);
+  mask-image: radial-gradient(circle at 50% 45%, transparent 30%, black 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, transparent 30%, black 75%);
+  animation: speed-lines 0.25s linear infinite;
+}
+
+@keyframes speed-lines {
+  to {
+    transform: rotate(3deg) scale(1.03);
+  }
+}
+
+/* Swim: coins and the power-up track (20 shield, 50 boost, 100 laser) */
+.hud .coins {
+  font-size: 22px;
+}
+
+.hud .power {
+  font-size: 14px;
+  color: #ffe680;
+}
+
+.coin-track {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: min(360px, 60vw);
+  transform: translateX(-50%);
+  padding-top: 26px;
+}
+
+.coin-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.coin-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #ffd23f, #ffb000);
+  box-shadow: 0 0 10px rgba(255, 200, 60, 0.8);
+  transition: width 0.15s;
+}
+
+.coin-mark {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  line-height: 1;
+  opacity: 0.55;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.coin-mark span {
+  display: block;
+  font-size: 18px;
+}
+
+.coin-mark small {
+  font-size: 10px;
+}
+
+.coin-mark.reached {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.25);
 }

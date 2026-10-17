@@ -1,16 +1,18 @@
 // The state machine, the one animation loop and the one renderer (brief §11).
-// Only this file moves between stages, changes the input mode, or changes lives, oxygen, timer and status.
+// Only this file moves between stages, changes the input mode, or changes lives, coins, timer and status.
 
 import * as THREE from 'three';
 import { createCharacter, type CharacterView } from '../render/character';
+import { RenderPipeline } from '../render/pipeline';
+import { SKY, createEnvironmentScene, createOutdoorLights, createSky } from '../render/sky';
 import { CONFIG } from './config';
 import { InputState, attachKeyboard } from './Input';
 import {
   STAGE_PHASE,
+  addCoins,
   addScore,
   applyBossDamage,
   applyDamage,
-  applyOxygenLoss,
   collectHeart,
   createRunState,
   fail,
@@ -33,7 +35,7 @@ import type {
 /** The gameplay stages in run order. */
 export const RUN_ORDER: readonly Stage[] = [
   'RUNNER_1',
-  'SUB_ENTRY',
+  'DIVE',
   'UNDERWATER',
   'SURFACE_RETURN',
   'RUNNER_2',
@@ -46,8 +48,8 @@ const STAGE_INPUT: Record<Stage, { start: InputMode; allowed: readonly InputMode
   LOBBY: { start: 'none', allowed: ['none'] },
   COUNTDOWN: { start: 'none', allowed: ['none'] },
   RUNNER_1: { start: 'lanes', allowed: ['lanes', 'none'] },
-  SUB_ENTRY: { start: 'none', allowed: ['none'] },
-  UNDERWATER: { start: 'timing', allowed: ['timing', 'none'] },
+  DIVE: { start: 'none', allowed: ['none'] },
+  UNDERWATER: { start: 'lanes', allowed: ['lanes', 'none'] },
   SURFACE_RETURN: { start: 'none', allowed: ['none'] },
   RUNNER_2: { start: 'lanes', allowed: ['lanes', 'none'] },
   BOSS: { start: 'lanes', allowed: ['lanes', 'timing', 'none'] },
@@ -82,8 +84,9 @@ export class Game {
   readonly defaultCamera: THREE.PerspectiveCamera;
   readonly bill: CharacterView;
   readonly input = new InputState();
+  readonly sky: THREE.Mesh;
 
-  private readonly renderer: THREE.WebGLRenderer;
+  private readonly pipeline: RenderPipeline;
   private readonly state: RunState;
   private readonly phases: Partial<Record<Stage, PhaseFactory>>;
   private readonly eventListeners = new Set<(e: GameEvent) => void>();
@@ -104,22 +107,14 @@ export class Game {
     this.phases = options.phases;
     this.state = createRunState(options.identity);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    options.container.appendChild(this.renderer.domElement);
-
-    this.defaultCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+    this.defaultCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
     this.camera = this.defaultCamera;
     this.resetCamera();
+    this.pipeline = new RenderPipeline(options.container, this.scene, this.camera, createEnvironmentScene());
 
-    this.scene.background = new THREE.Color(0x9fd8ff);
-    this.scene.fog = new THREE.Fog(0x9fd8ff, 60, 160);
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x4a7aa0, 1.5));
-    const sun = new THREE.DirectionalLight(0xffffff, 2);
-    sun.position.set(6, 12, 8);
-    sun.castShadow = true;
-    this.scene.add(sun);
+    this.sky = createSky();
+    this.scene.add(this.sky, createOutdoorLights());
+    this.resetAtmosphere();
 
     this.bill = createCharacter();
     this.scene.add(this.bill.object);
@@ -153,7 +148,7 @@ export class Game {
   /** Start the render loop. The game sits in the lobby until startAttempt() is called. */
   start(): void {
     this.lastFrameMs = performance.now();
-    this.renderer.setAnimationLoop(this.frame);
+    this.pipeline.renderer.setAnimationLoop(this.frame);
   }
 
   /**
@@ -196,11 +191,11 @@ export class Game {
   }
 
   destroy(): void {
-    this.renderer.setAnimationLoop(null);
+    this.pipeline.renderer.setAnimationLoop(null);
     this.exitPhase();
     this.detachKeyboard();
     window.removeEventListener('resize', this.onResize);
-    this.renderer.dispose();
+    this.pipeline.dispose();
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -235,7 +230,7 @@ export class Game {
     };
     this.frameListeners.forEach((l) => l(info));
 
-    this.renderer.render(this.scene, this.camera);
+    this.pipeline.render(this.camera);
   };
 
   /**
@@ -261,7 +256,8 @@ export class Game {
     this.camera = this.defaultCamera;
     this.resetCamera();
     // Transitions pick Bill up from the lane the runner left him in, instead of snapping him to the middle.
-    this.resetBill(stage === 'SUB_ENTRY' || stage === 'SURFACE_RETURN');
+    this.resetBill(stage === 'DIVE' || stage === 'SURFACE_RETURN');
+    this.resetAtmosphere();
     this.setInputMode(STAGE_INPUT[stage].start);
     this.emit({ type: 'stageChanged', stage, previous });
 
@@ -330,6 +326,7 @@ export class Game {
       scene: this.scene,
       defaultCamera: this.defaultCamera,
       bill: this.bill,
+      sky: this.sky,
       get input() {
         return game.input.snapshot;
       },
@@ -364,13 +361,10 @@ export class Game {
         const delta = addScore(state, points);
         if (delta !== 0) game.emit({ type: 'scoreChanged', score: state.score, delta });
       },
-      loseOxygen() {
+      addCoins(delta) {
         if (!live()) return;
-        game.stopClock();
-        const result = applyOxygenLoss(state);
-        if (result === 'ignored') return;
-        game.emit({ type: 'oxygenLost', oxygen: state.oxygen });
-        if (result === 'empty') game.afterFail();
+        const change = addCoins(state, delta);
+        if (change !== 0) game.emit({ type: 'coinsChanged', coins: state.coins, delta: change });
       },
       gainLife() {
         if (!live() || !collectHeart(state)) return false;
@@ -406,6 +400,13 @@ export class Game {
     };
   }
 
+  /** Open sky and light haze. Phases that go underwater change these and core puts them back. */
+  private resetAtmosphere(): void {
+    this.sky.visible = true;
+    this.scene.background = new THREE.Color(SKY.horizon);
+    this.scene.fog = new THREE.Fog(SKY.fog, 70, 260);
+  }
+
   /** Behind and above Bill, looking down the track (-Z). Phases can move it or swap cameras. */
   private resetCamera(): void {
     this.defaultCamera.position.set(0, 3.4, 6.5);
@@ -430,7 +431,7 @@ export class Game {
   private onResize = (): void => {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    this.renderer.setSize(w, h);
+    this.pipeline.setSize(w, h);
     this.defaultCamera.aspect = w / h;
     this.defaultCamera.updateProjectionMatrix();
   };

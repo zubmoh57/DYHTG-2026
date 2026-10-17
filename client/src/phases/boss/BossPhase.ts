@@ -1,11 +1,14 @@
-// The pigeon boss (Tejas renders; Zubair's sim/boss.ts decides). Dodge three aimed shots with A/D,
-// then react to Ready → Aim → green FIRE with Space for the laser (GAME_BRIEF §6, ZUBAIR_BASE.md).
+// The mafia pigeon boss (Tejas renders; Zubair's sim/boss.ts decides). Dodge three aimed shots with
+// A/D, then react to Ready → Aim → green FIRE with Space for the laser (GAME_BRIEF §6, ZUBAIR_BASE.md).
+// Swim power-ups apply here: a 5 s shield at the start, or the laser hitting 50% harder.
 
 import * as THREE from 'three';
 import { CONFIG } from '../../core/config';
 import { LaneMover } from '../../core/LaneMover';
+import { powerUpFor } from '../../core/RunState';
 import type { Phase, PhaseContext, PhaseFactory } from '../../core/types';
 import { disposeObject } from '../../render/dispose';
+import { showToast } from '../../ui/toast';
 import {
   advanceBossReload,
   beginBossReload,
@@ -19,22 +22,27 @@ import {
 } from '../../sim/boss';
 import { CameraRig } from '../runner/cameraRig';
 import { Particles, RunnerWorld } from '../runner/runnerView';
-import { Laser, PigeonView, makeBullet } from './pigeonView';
+import { Laser, PigeonView, makeBullet, makeShield } from './pigeonView';
 
 const PIGEON_Z = -17;
 const RESULT_SEC = 1.1;
 const R = CONFIG.boss.reaction;
 
-/** PLACEHOLDER curve (UNDECIDED): linear from maxDamage at 0 ms to minDamage at the end of Fire. */
-const damageForReaction = (reactionMs: number) => {
+/**
+ * PLACEHOLDER curve (UNDECIDED): linear from maxDamage at 0 ms to minDamage at the end of Fire.
+ * The 100-coin power-up multiplies it, inside the sim's rule, so sim and shared HP stay in step.
+ */
+const reactionCurve = (multiplier: number) => (reactionMs: number) => {
   const k = Math.min(1, Math.max(0, reactionMs / (R.fireWindowSec * 1000)));
-  return Math.round(R.maxDamage + (R.minDamage - R.maxDamage) * k);
+  return Math.round((R.maxDamage + (R.minDamage - R.maxDamage) * k) * multiplier);
 };
 
 interface Bullet {
   id: number;
-  mesh: THREE.Mesh;
+  mesh: THREE.Object3D;
   lane: number;
+  /** Bounced off the shield: flies off sideways and can't hurt anyone. */
+  deflected: boolean;
   from: THREE.Vector3;
   t: number;
   duration: number;
@@ -42,11 +50,12 @@ interface Bullet {
 
 export function createBossPhase(): PhaseFactory {
   return (ctx: PhaseContext): Phase => {
+    const power = powerUpFor(ctx.run.coins);
     const sim = createBoss({
       readyMs: R.readySec * 1000,
       aimMs: R.aimSec * 1000,
       fireMs: R.fireWindowSec * 1000,
-      damageForReaction,
+      damageForReaction: reactionCurve(power === 'laser' ? CONFIG.powerUps.laserDamageMultiplier : 1),
       noPressDamage: R.noPressDamage,
     });
     const root = new THREE.Group();
@@ -59,6 +68,8 @@ export function createBossPhase(): PhaseFactory {
     const bullets: Bullet[] = [];
     const prompt = document.createElement('div');
     prompt.className = 'reaction';
+    const shield = makeShield();
+    let shieldT = power === 'shield' ? CONFIG.powerUps.shieldSec : 0;
 
     let volleyT = 0; // seconds since this volley started
     let resultT = -1; // seconds the last attack result has been on screen
@@ -80,6 +91,7 @@ export function createBossPhase(): PhaseFactory {
         const to = pigeon.root.position.clone().add(new THREE.Vector3(0, 3.2, 0));
         laser.fire(from, to);
         pigeon.hit();
+        pigeon.setHealth(sim.hp / CONFIG.boss.health);
         rig.addTrauma(0.35);
         ctx.bill.setPose('attack');
         ctx.emit({ type: 'cue', name: 'laser' });
@@ -111,8 +123,9 @@ export function createBossPhase(): PhaseFactory {
       const mesh = makeBullet();
       const from = pigeon.muzzleWorld(new THREE.Vector3());
       mesh.position.copy(from);
+      mesh.lookAt(CONFIG.runner.lanes[lane], 1, 0); // nose first, towards the duck's lane
       root.add(mesh);
-      bullets.push({ id, mesh, lane, from, t: 0, duration: -from.z / CONFIG.boss.bulletSpeed });
+      bullets.push({ id, mesh, lane, from, t: 0, duration: -from.z / CONFIG.boss.bulletSpeed, deflected: false });
       pigeon.fire();
       rig.addTrauma(0.12);
       ctx.emit({ type: 'cue', name: 'shot' });
@@ -123,7 +136,20 @@ export function createBossPhase(): PhaseFactory {
         pigeon.root.position.set(0, 0, PIGEON_Z);
         root.add(world.group, pigeon.root, laser.mesh, particles.group);
         ctx.scene.add(root);
+        pigeon.setHealth(1);
+        // Dev only: preview his moods from the console, e.g. __pigeon.setHealth(0.3).
+        if (import.meta.env.DEV) (window as unknown as { __pigeon: PigeonView }).__pigeon = pigeon;
         startVolley();
+        if (shieldT > 0) {
+          shield.position.set(lanes.x, 1, 0);
+          root.add(shield);
+          showToast('🛡️ SHIELD UP: 5 seconds!', 'good', 1800);
+          ctx.emit({ type: 'cue', name: 'shield' });
+        } else if (power === 'laser') {
+          showToast('💥 LASER +50% POWER!', 'good', 1800);
+        } else {
+          showToast("🐦 The Don doesn't like ducks…", 'bad', 1800);
+        }
       },
 
       update(dt) {
@@ -165,8 +191,26 @@ export function createBossPhase(): PhaseFactory {
               b.from.y + (1 - b.from.y) * k,
               b.from.z * (1 - k),
             );
+            if (b.deflected) {
+              // Ricochet away and fade out.
+              b.mesh.position.x += dt * 12 * (b.lane === 0 ? -1 : 1);
+              b.mesh.position.y += dt * 6;
+              b.mesh.rotation.z += dt * 20;
+              if (b.t > b.duration + 0.5) {
+                b.mesh.removeFromParent();
+                resolveBossProjectile(sim, b.id);
+                bullets.splice(i, 1);
+              }
+              continue;
+            }
             const reached = k >= 1;
             const hits = reached && b.lane === lanes.lane;
+            if (hits && shieldT > 0) {
+              b.deflected = true;
+              ctx.emit({ type: 'cue', name: 'ricochet' });
+              particles.burst(lanes.x, 1.2, 0.8, 10, { color: 0x9fe8ff, speed: 5, up: 3, life: 0.4 });
+              continue;
+            }
             if (hits && ctx.damagePlayer()) {
               ctx.bill.setPose('hit');
               rig.addTrauma(0.5);
@@ -212,6 +256,18 @@ export function createBossPhase(): PhaseFactory {
           }
         }
 
+        // The shield follows Bill, shimmers, and flickers out in its last second.
+        if (shieldT > 0) {
+          shieldT = Math.max(0, shieldT - dt);
+          shield.position.x = lanes.x;
+          shield.rotation.y += dt;
+          shield.visible = shieldT > 1 || Math.floor(shieldT * 12) % 2 === 0;
+          shield.scale.setScalar(1 + Math.sin(performance.now() * 0.008) * 0.03);
+          if (shieldT === 0) {
+            shield.removeFromParent();
+            ctx.emit({ type: 'cue', name: 'shieldDown' });
+          }
+        }
         ctx.bill.object.position.x = lanes.x;
         const invulnerable = performance.now() < ctx.run.invulnerableUntilMs;
         ctx.bill.object.visible = !invulnerable || Math.floor(performance.now() / 70) % 2 === 0;

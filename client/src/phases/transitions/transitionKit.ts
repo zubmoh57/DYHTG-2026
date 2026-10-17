@@ -36,70 +36,6 @@ export class Fade {
 const std = (color: number, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra });
 
-/** Height of the open hatch above the waterline when the sub has surfaced. */
-export const HATCH_HEIGHT = 2.75;
-
-/** A cartoon yellow submarine. Its origin is the hatch's centre at the waterline. */
-export class Submarine {
-  readonly root = new THREE.Group();
-  readonly lid = new THREE.Group();
-
-  constructor() {
-    const yellow = std(0xf2c12e);
-    const darkYellow = std(0xd9a21b);
-    const metal = std(0x6c7a86, { metalness: 0.6, roughness: 0.35 });
-
-    const hull = new THREE.Mesh(new THREE.CapsuleGeometry(1.4, 5.2, 8, 20), yellow);
-    hull.rotation.x = Math.PI / 2;
-    hull.position.set(0, 0, -0.8);
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 1.4, 20), darkYellow);
-    tower.position.y = 1.95;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.09, 10, 24), metal);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = HATCH_HEIGHT;
-    const hole = new THREE.Mesh(new THREE.CircleGeometry(0.52, 24), std(0x111417));
-    hole.rotation.x = -Math.PI / 2;
-    hole.position.y = HATCH_HEIGHT + 0.005;
-
-    // The lid hinges at the back of the rim.
-    const lidDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.1, 24), metal);
-    lidDisc.position.z = 0.58;
-    const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 16), std(0xc0392b));
-    wheel.rotation.x = Math.PI / 2;
-    wheel.position.set(0, 0.08, 0.58);
-    this.lid.add(lidDisc, wheel);
-    this.lid.position.set(0, HATCH_HEIGHT, -0.58);
-    this.setLid(1);
-
-    const periscope = new THREE.Group();
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.2, 8), metal);
-    pole.position.y = 0.6;
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.4), metal);
-    eye.position.set(0, 1.2, 0.12);
-    periscope.add(pole, eye);
-    periscope.position.set(0.45, 2.6, -0.4);
-
-    const portMat = std(0x1d3557, { metalness: 0.3, roughness: 0.2 });
-    for (let i = 0; i < 3; i++) {
-      for (const side of [-1, 1]) {
-        const port = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), portMat);
-        port.position.set(side * 1.41, 0.3, 1.2 - i * 1.5);
-        port.rotation.y = side * (Math.PI / 2);
-        this.root.add(port);
-      }
-    }
-    const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.18, 0.08), metal);
-    prop.position.set(0, 0, -4.4);
-    this.root.add(hull, tower, rim, hole, this.lid, periscope, prop);
-    this.root.traverse((o) => (o.castShadow = true));
-  }
-
-  /** 1 = lid wide open, 0 = shut. */
-  setLid(open: number): void {
-    this.lid.rotation.x = -open * 1.9;
-  }
-}
-
 function dollarTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
@@ -170,27 +106,63 @@ function dollarEyeTexture(): THREE.CanvasTexture {
   return t;
 }
 
-/** Two "$" signs that pop over Bill's eyes. Add `group` to Bill's object; set `pop` 0..1. */
+/**
+ * Two "$" signs that sit exactly on Bill's eyes. They're parented to his HEAD (CharacterView.head),
+ * at the eyes' own positions in head space and turned to match the curve of his face, so they stay
+ * locked on however the head moves. `pop` 0..1 scales them in.
+ */
 export class DollarEyes {
   readonly group = new THREE.Group();
-  private readonly sprites: THREE.Sprite[] = [];
+  private readonly planes: THREE.Mesh[] = [];
 
   constructor() {
-    const material = new THREE.SpriteMaterial({ map: dollarEyeTexture(), depthTest: false });
+    const material = new THREE.MeshBasicMaterial({ map: dollarEyeTexture(), transparent: true, depthTest: false });
+    const geometry = new THREE.PlaneGeometry(0.11, 0.11);
     for (const side of [-1, 1]) {
-      const sprite = new THREE.Sprite(material);
-      // Bill's eyes in his own space (render/character.ts: head at 1.45, eyes ±0.065 and forward).
-      sprite.position.set(side * 0.07, 1.49, 0.25);
-      sprite.renderOrder = 10;
-      this.sprites.push(sprite);
-      this.group.add(sprite);
+      // Eye centre in head space (render/character.ts): (±0.065, 0.03, 0.145), radius 0.045.
+      const eye = new THREE.Vector3(side * 0.065, 0.03, 0.145);
+      const normal = eye.clone().normalize();
+      const plane = new THREE.Mesh(geometry, material);
+      plane.position.copy(eye).addScaledVector(normal, 0.055); // just in front of the eye and lid
+      plane.lookAt(eye.clone().addScaledVector(normal, 1));
+      plane.renderOrder = 10;
+      this.planes.push(plane);
+      this.group.add(plane);
     }
     this.pop(0);
   }
 
   pop(amount: number): void {
-    const s = 0.16 * Math.max(0, amount);
-    for (const sprite of this.sprites) sprite.scale.set(s, s, s);
+    const s = Math.max(0.0001, amount);
+    for (const p of this.planes) p.scale.set(s, s, s);
     this.group.visible = amount > 0.01;
+  }
+}
+
+/** A long pink tongue that flops out of Bill's bill when he sees money. Parent it to his head. */
+export class GreedyTongue {
+  readonly group = new THREE.Group();
+  private readonly tongue: THREE.Mesh;
+  private t = 0;
+
+  constructor() {
+    const geometry = new THREE.CapsuleGeometry(0.045, 0.2, 6, 14);
+    geometry.translate(0, -0.13, 0); // hinge at the top end
+    this.tongue = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xff6f91, roughness: 0.35 }));
+    this.tongue.scale.set(1.35, 1, 0.5); // wide and flat
+    // Out of the lower front of the bill (head space), lolling down and forward.
+    this.group.position.set(0.03, -0.075, 0.29);
+    this.group.add(this.tongue);
+    this.out(0);
+  }
+
+  /** 0 = tucked in, 1 = fully out. Wiggles while out. */
+  out(amount: number, dt = 0): void {
+    this.t += dt;
+    const a = Math.max(0, Math.min(1, amount));
+    this.group.visible = a > 0.01;
+    this.group.scale.set(1, a, 1);
+    // Negative x swings the tip forward, out of the bill (positive would tuck it into his chin).
+    this.group.rotation.set(-0.55 + Math.sin(this.t * 14) * 0.15 * a, 0, Math.sin(this.t * 9) * 0.25 * a);
   }
 }

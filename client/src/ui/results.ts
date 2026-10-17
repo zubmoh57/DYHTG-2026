@@ -25,7 +25,7 @@ export function mountResults(root: HTMLElement, game: Game, onRetry: () => void)
       el('p', {
         text: finished
           ? `Time ${formatTime(run.elapsedMs)} · ${run.score} pts`
-          : `Out of ${run.failReason === 'oxygen' ? 'oxygen' : 'lives'} in ${run.phase} · ${formatTime(run.elapsedMs)}`,
+          : `Out of lives in ${run.phase} · ${formatTime(run.elapsedMs)}`,
       }),
       el('p', { className: 'muted', text: bestMs === null ? 'No completed run yet' : `Best ${formatTime(bestMs)}` }),
       retry,

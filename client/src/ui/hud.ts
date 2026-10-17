@@ -1,14 +1,49 @@
-// In-run HUD (Tejas): lives, oxygen, score, timer, boss health and which keys work right now.
+// In-run HUD (Tejas): lives, coins + power-up track, score, timer, boss health and which keys work now.
 // Functional first; Vansh restyles it later through ui.css.
 
 import type { Game } from '../core/Game';
 import { CONFIG } from '../core/config';
 import type { InputMode, Stage } from '../core/types';
+import { powerUpFor } from '../core/RunState';
+import type { PowerUp } from '../core/types';
 import { el, formatTime } from './dom';
+
+const POWER_LABEL: Record<PowerUp, string> = {
+  none: '',
+  shield: '🛡️ Shield ready for the boss',
+  boost: '⚡ Speed boost',
+  laser: '💥 Laser +50% on the boss',
+};
+
+/** The swim's coin track: how close you are to each power-up (20 shield, 50 boost, 100 laser). */
+function mountCoinTrack() {
+  const tiers: [number, string][] = [
+    [CONFIG.powerUps.shieldCoins, '🛡️'],
+    [CONFIG.powerUps.boostCoins, '⚡'],
+    [CONFIG.powerUps.laserCoins, '💥'],
+  ];
+  const max = CONFIG.powerUps.laserCoins;
+  const fill = el('div', { className: 'coin-fill' });
+  const marks = tiers.map(([at, icon]) => {
+    const mark = el('div', { className: 'coin-mark' }, [el('span', { text: icon }), el('small', { text: String(at) })]);
+    mark.style.left = `${(100 * at) / max}%`;
+    return mark;
+  });
+  const element = el('div', { className: 'coin-track' }, [el('div', { className: 'coin-bar' }, [fill]), ...marks]);
+  return {
+    element,
+    show(visible: boolean, coins: number) {
+      element.style.display = visible ? '' : 'none';
+      if (!visible) return;
+      fill.style.width = `${Math.min(100, (100 * coins) / max)}%`;
+      marks.forEach((m, i) => m.classList.toggle('reached', coins >= tiers[i][0]));
+    },
+  };
+}
 
 const IN_RUN: ReadonlySet<Stage> = new Set([
   'RUNNER_1',
-  'SUB_ENTRY',
+  'DIVE',
   'UNDERWATER',
   'SURFACE_RETURN',
   'RUNNER_2',
@@ -23,18 +58,21 @@ const KEY_HINT: Record<InputMode, string> = {
 
 export function mountHud(root: HTMLElement, game: Game): void {
   const lives = el('div');
-  const oxygen = el('div');
+  const coins = el('div', { className: 'coins' });
+  const power = el('div', { className: 'power' });
+  const coinTrack = mountCoinTrack();
   const stage = el('div', { className: 'stage' });
   const time = el('div');
   const score = el('div');
   const bossFill = el('div', { className: 'boss-fill' });
   const bossHp = el('span');
   const boss = el('div', { className: 'boss' }, [
-    el('div', { className: 'boss-name' }, ['🐦 THE PIGEON ', bossHp]),
+    el('div', { className: 'boss-name' }, ['🎩 THE DON PIGEON ', bossHp]),
     el('div', { className: 'boss-bar' }, [bossFill]),
   ]);
   const hud = el('div', { className: 'hud' }, [
-    el('div', {}, [lives, oxygen, stage]),
+    el('div', {}, [lives, coins, power, stage]),
+    coinTrack.element,
     el('div', {}, [time, score]),
     boss,
   ]);
@@ -57,10 +95,12 @@ export function mountHud(root: HTMLElement, game: Game): void {
     if (!visible) return;
 
     set(lives, '❤️'.repeat(run.lives));
-    // Oxygen only matters inside the sub; it's separate from lives (brief §5).
-    const underwater = run.stage === 'UNDERWATER';
-    set(oxygen, underwater ? `O₂ ${'🫧'.repeat(run.oxygen)}${'·'.repeat(Math.max(0, 3 - run.oxygen))}` : '');
-    oxygen.className = underwater && run.oxygen === 1 ? 'oxygen low' : 'oxygen';
+    // Coins show from the swim onwards; the power-up they bought is named after the swim.
+    const swimming = run.stage === 'UNDERWATER';
+    const afterSwim = run.stage === 'SURFACE_RETURN' || run.stage === 'RUNNER_2' || run.stage === 'BOSS';
+    set(coins, swimming || afterSwim ? `🪙 ${run.coins}` : '');
+    coinTrack.show(swimming, run.coins);
+    set(power, afterSwim ? POWER_LABEL[powerUpFor(run.coins)] : '');
     set(stage, run.stage);
     set(time, formatTime(run.elapsedMs));
     set(score, `${run.score.toLocaleString()} pts`);

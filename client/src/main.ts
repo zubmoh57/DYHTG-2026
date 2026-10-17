@@ -3,8 +3,8 @@
 // URLs:
 //   /?room=QUAK         open the lobby with a room code filled in (invite links)
 // Dev URLs:
-//   /?phase=boss        jump straight into a stage (runner1, sub-entry, underwater, surface-return, runner2, boss)
-//   /?short             runners at a fifth of their length
+//   /?phase=boss        jump straight into a stage (runner1, dive, swim, surface-return, runner2, boss)
+//   /?short             runners and the swim at a fifth of their length
 //   /?seed=42           solo practice on a specific course (rooms supply their own seed)
 
 import './ui/ui.css';

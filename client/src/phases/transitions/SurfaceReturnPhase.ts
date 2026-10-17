@@ -1,5 +1,6 @@
 // Transition 2 (Tejas): the end of the underwater section. A fishing hook with a dollar drops in,
-// Bill's eyes turn into dollar signs, he grabs it and gets yanked up to the surface (brief §2).
+// Bill's eyes turn into dollar signs and his tongue flops out (greedy duck!), he grabs it and gets
+// yanked up to the surface (brief §2).
 // No gameplay input (brief §3).
 
 import * as THREE from 'three';
@@ -7,7 +8,7 @@ import type { Phase, PhaseContext, PhaseFactory } from '../../core/types';
 import { disposeObject } from '../../render/dispose';
 import { Particles } from '../runner/runnerView';
 import { SEA_COLOR, UnderwaterWorld } from '../underwater/underwaterView';
-import { DollarEyes, DollarHook, Fade, easeOut, easeOutBack, span } from './transitionKit';
+import { DollarEyes, DollarHook, Fade, GreedyTongue, easeOut, easeOutBack, span } from './transitionKit';
 
 const DURATION = 3.8;
 const BILL_Y = 0.6;
@@ -19,6 +20,7 @@ export function createSurfaceReturn(): PhaseFactory {
     const world = new UnderwaterWorld();
     const hook = new DollarHook();
     const eyes = new DollarEyes();
+    const tongue = new GreedyTongue();
     const particles = new Particles(50);
     const fadeIn = new Fade(`#${SEA_COLOR.toString(16).padStart(6, '0')}`);
     const flash = new Fade('#eaf8ff');
@@ -42,7 +44,8 @@ export function createSurfaceReturn(): PhaseFactory {
         const bill = ctx.bill.object;
         bill.position.set(0, BILL_Y, 0);
         bill.rotation.set(0, 0, 0);
-        bill.add(eyes.group);
+        // Locked to his head, so they line up with his eyes and bill exactly.
+        ctx.bill.head.add(eyes.group, tongue.group);
         ctx.bill.setPose('idle');
 
         camera.position.set(0, 1.9, 4.6);
@@ -68,6 +71,8 @@ export function createSurfaceReturn(): PhaseFactory {
         // 1.4 s: Bill spots the money. Dollar-sign eyes pop.
         const pop = span(t, 1.4, 1.75);
         eyes.pop(pop > 0 ? easeOutBack(pop) : 0);
+        // ...and the tongue lolls out, greedy, until he's yanked away.
+        tongue.out(easeOutBack(span(t, 1.5, 1.85)), dt);
         if (!popped && pop > 0) {
           popped = true;
           ctx.emit({ type: 'cue', name: 'cash' });
@@ -102,7 +107,7 @@ export function createSurfaceReturn(): PhaseFactory {
       },
 
       exit() {
-        ctx.bill.object.remove(eyes.group);
+        ctx.bill.head.remove(eyes.group, tongue.group);
         fadeIn.remove();
         flash.remove();
         ctx.scene.background = oldBackground;

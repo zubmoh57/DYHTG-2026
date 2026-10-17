@@ -10,8 +10,8 @@ export type Stage =
   | 'LOBBY'
   | 'COUNTDOWN'
   | 'RUNNER_1'
-  | 'SUB_ENTRY'
-  | 'UNDERWATER'
+  | 'DIVE' // Bill dives into a pond that pops up at the end of Runner 1
+  | 'UNDERWATER' // swimming: A/D lanes, dodge, collect coins for a power-up
   | 'SURFACE_RETURN'
   | 'RUNNER_2'
   | 'BOSS' // the boss phase switches between dodging and attacking itself, via requestInputMode()
@@ -26,7 +26,10 @@ export type RunStatus = 'waiting' | 'running' | 'failed' | 'finished';
 /** lanes = A/D only. timing = Space only. A, D and Space are never all live at once (brief §3). */
 export type InputMode = 'none' | 'lanes' | 'timing';
 
-export type FailReason = 'lives' | 'oxygen';
+export type FailReason = 'lives';
+
+/** What the coins from the swim buy: the best one you can afford, automatically (DESIGN_CHANGES.md). */
+export type PowerUp = 'none' | 'shield' | 'boost' | 'laser';
 
 export type RandomSection = 'runner1' | 'runner2' | 'underwater' | 'boss';
 
@@ -53,7 +56,8 @@ export interface RunState {
   status: RunStatus;
   elapsedMs: number;
   lives: number;
-  oxygen: number;
+  /** Coins collected underwater this attempt. They decide the power-up. */
+  coins: number;
   score: number;
   /** Distance travelled in the current section, and that section's total, for progress bars. */
   phaseDistance: number;
@@ -73,7 +77,7 @@ export type GameEvent =
   | { type: 'inputModeChanged'; mode: InputMode }
   | { type: 'damaged'; lives: number }
   | { type: 'lifeGained'; lives: number }
-  | { type: 'oxygenLost'; oxygen: number }
+  | { type: 'coinsChanged'; coins: number; delta: number }
   | { type: 'scoreChanged'; score: number; delta: number }
   | { type: 'bossDamaged'; damage: number; health: number }
   | { type: 'runFinished'; elapsedMs: number; score: number }
@@ -93,13 +97,15 @@ export interface PhaseContext {
   rng(section: RandomSection): SeededRandom;
   /** Bill. Core resets his position, pose and visibility when a stage starts. */
   readonly bill: CharacterView;
+  /** The sky dome. Visible again at every stage start; underwater stages hide it. */
+  readonly sky: THREE.Object3D;
 
   requestInputMode(mode: InputMode): void;
   /** Returns false (and does nothing) while invulnerable. Fails the run at 0 lives. */
   damagePlayer(): boolean;
   addScore(points: number): void;
-  /** Fails the run at 0 oxygen. */
-  loseOxygen(): void;
+  /** Coins can go up (pickups) or down (hits underwater), never below 0. */
+  addCoins(delta: number): void;
   /** The heart. Returns false if it was already collected this attempt. */
   gainLife(): boolean;
   setRunnerSpeed(speed: number): void;

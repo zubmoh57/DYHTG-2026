@@ -1,158 +1,53 @@
-// Runner visuals (Tejas): water, banks, branches, breadcrumbs, the heart and splashes.
+// Runner visuals (Tejas): the forest river, natural branches, bread slices, the heart and splashes.
 // Render-only. Collision uses lanes and distances from the course, never these meshes.
 // Cosmetic randomness uses Math.random() on purpose: it must not touch the seeded gameplay RNG.
 
 import * as THREE from 'three';
 import { CONFIG } from '../../core/config';
 import type { Lane } from '../../course/types';
+import { ForestRiver } from '../../render/forest';
+import { taperedLimb } from '../../render/shapes';
+import { barkTexture, crumbTexture, leafTexture } from '../../render/textures';
 
 const LANES = CONFIG.runner.lanes;
 const LANE_WIDTH = 2.5;
-const WATER_WIDTH = 26;
-const STRIP_LENGTH = 320;
-const STRIP_NEAR = 30; // how far the water reaches behind the camera
-const TILE = 8; // world units per repeat of the water texture
 
-const PALETTE = {
-  water: '#2e8ed6',
-  ripple: 'rgba(255,255,255,0.35)',
-  lanes: 0x5fb4ef,
-  divider: 0xe8f6ff,
-  grass: '#5dbb63',
-  grassDark: 'rgba(40,110,50,0.35)',
-  reed: 0x3f8f45,
-  reedTip: 0x8a5a2b,
-  lily: 0x48a858,
-  log: 0x7a4a24,
-  logEnd: 0xc8925a,
-  leaf: 0x3e9c4a,
-  crumb: 0xe2b26a,
-  heart: 0xff4f8b,
-};
-
-function canvasTexture(draw: (g: CanvasRenderingContext2D, size: number) => void, size = 256): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  draw(canvas.getContext('2d')!, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-/** A long strip of scrolling ground. Moving the texture (not the mesh) makes the world feel fast. */
-function scrollingStrip(texture: THREE.CanvasTexture, width: number, x: number, y: number): THREE.Mesh {
-  texture.repeat.set(width / TILE, STRIP_LENGTH / TILE);
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, STRIP_LENGTH),
-    new THREE.MeshStandardMaterial({ map: texture, roughness: 0.35, metalness: 0.05 }),
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(x, y, STRIP_NEAR - STRIP_LENGTH / 2);
-  mesh.receiveShadow = true;
-  return mesh;
-}
-
+/** The world the runners (and the boss arena) take place in. */
 export class RunnerWorld {
-  readonly group = new THREE.Group();
-  private readonly scrolling: THREE.CanvasTexture[] = [];
-  private readonly drifters: THREE.Object3D[] = [];
-
-  constructor() {
-    const water = canvasTexture((g, s) => {
-      g.fillStyle = PALETTE.water;
-      g.fillRect(0, 0, s, s);
-      g.strokeStyle = PALETTE.ripple;
-      g.lineWidth = 3;
-      for (let i = 0; i < 26; i++) {
-        const x = Math.random() * s;
-        const y = Math.random() * s;
-        const w = 14 + Math.random() * 28;
-        g.beginPath();
-        g.ellipse(x, y, w, w * 0.22, 0, Math.PI * 1.1, Math.PI * 1.9);
-        g.stroke();
-      }
-    });
-    this.scrolling.push(water);
-    this.group.add(scrollingStrip(water, WATER_WIDTH, 0, 0));
-
-    // A slightly lighter band over the three lanes, with two divider lines, so lanes read instantly.
-    const band = new THREE.Mesh(
-      new THREE.PlaneGeometry(LANE_WIDTH * 3, STRIP_LENGTH),
-      new THREE.MeshBasicMaterial({ color: PALETTE.lanes, transparent: true, opacity: 0.25 }),
-    );
-    band.rotation.x = -Math.PI / 2;
-    band.position.set(0, 0.01, STRIP_NEAR - STRIP_LENGTH / 2);
-    this.group.add(band);
-    for (const x of [-LANE_WIDTH / 2, LANE_WIDTH / 2]) {
-      const line = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.07, STRIP_LENGTH),
-        new THREE.MeshBasicMaterial({ color: PALETTE.divider, transparent: true, opacity: 0.45 }),
-      );
-      line.rotation.x = -Math.PI / 2;
-      line.position.set(x, 0.02, STRIP_NEAR - STRIP_LENGTH / 2);
-      this.group.add(line);
-    }
-
-    for (const side of [-1, 1]) {
-      const grass = canvasTexture((g, s) => {
-        g.fillStyle = PALETTE.grass;
-        g.fillRect(0, 0, s, s);
-        g.fillStyle = PALETTE.grassDark;
-        for (let i = 0; i < 60; i++) g.fillRect(Math.random() * s, Math.random() * s, 3, 10 + Math.random() * 12);
-      });
-      this.scrolling.push(grass);
-      this.group.add(scrollingStrip(grass, 40, side * (WATER_WIDTH / 2 + 20), 0.15));
-
-      // Reeds along the bank and lily pads on the outer water, recycled as the world scrolls.
-      for (let i = 0; i < 26; i++) {
-        const reed = new THREE.Group();
-        const stalk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.05, 0.07, 1.6, 5),
-          new THREE.MeshStandardMaterial({ color: PALETTE.reed }),
-        );
-        stalk.position.y = 0.8;
-        const tip = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.1, 0.1, 0.45, 6),
-          new THREE.MeshStandardMaterial({ color: PALETTE.reedTip }),
-        );
-        tip.position.y = 1.55;
-        reed.add(stalk, tip);
-        reed.position.set(side * (WATER_WIDTH / 2 - 0.5 + Math.random() * 2), 0, -Math.random() * 220);
-        reed.rotation.z = (Math.random() - 0.5) * 0.25;
-        this.group.add(reed);
-        this.drifters.push(reed);
-      }
-      for (let i = 0; i < 10; i++) {
-        const lily = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.6 + Math.random() * 0.4, 0.6, 0.05, 12, 1, false, 0.3, Math.PI * 1.85),
-          new THREE.MeshStandardMaterial({ color: PALETTE.lily }),
-        );
-        lily.position.set(side * (5.5 + Math.random() * 5), 0.03, -Math.random() * 220);
-        lily.rotation.y = Math.random() * Math.PI * 2;
-        this.group.add(lily);
-        this.drifters.push(lily);
-      }
-    }
-  }
+  private readonly forest = new ForestRiver();
+  readonly group = this.forest.group;
 
   /** Move the world towards the camera by `step` units. */
   scroll(distance: number, step: number): void {
-    const offset = distance / TILE;
-    for (const t of this.scrolling) t.offset.y = offset;
-    for (const d of this.drifters) {
-      d.position.z += step;
-      if (d.position.z > STRIP_NEAR) d.position.z -= 220;
-    }
+    this.forest.scroll(distance, step);
   }
 }
 
-// --- Course items --------------------------------------------------------------------------
+// --- Branches ------------------------------------------------------------------------------
 
-const logMaterial = () => new THREE.MeshStandardMaterial({ color: PALETTE.log, roughness: 0.9 });
+// Shared by every branch: textures and materials are made once.
+let shared: { bark: THREE.MeshStandardMaterial; leaf: THREE.MeshStandardMaterial; leafGeo: THREE.PlaneGeometry } | null = null;
+function branchMaterials() {
+  if (!shared) {
+    const bark = barkTexture();
+    bark.repeat.set(2, 1);
+    shared = {
+      bark: new THREE.MeshStandardMaterial({ map: bark, color: 0xe0b48c, roughness: 0.9 }),
+      leaf: new THREE.MeshStandardMaterial({
+        map: leafTexture(),
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+        roughness: 0.7,
+      }),
+      leafGeo: new THREE.PlaneGeometry(0.55, 0.55),
+    };
+  }
+  return shared;
+}
 
-/** A branch lying across one or more lanes. Neighbouring lanes become one long log. */
+/** A fallen branch lying across one or more lanes, half in the water, with twigs and leaves. */
 export function makeBranch(lanes: Lane[]): THREE.Group {
+  const { bark, leaf, leafGeo } = branchMaterials();
   const group = new THREE.Group();
   const sorted = [...lanes].sort();
   const runs: Lane[][] = [];
@@ -163,50 +58,83 @@ export function makeBranch(lanes: Lane[]): THREE.Group {
   }
 
   for (const run of runs) {
-    const x = run.reduce<number>((sum, l) => sum + LANES[l], 0) / run.length;
-    const width = run.length * LANE_WIDTH - 0.35;
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, width, 10), logMaterial());
-    log.rotation.z = Math.PI / 2;
-    log.position.set(x, 0.3, 0);
-    log.castShadow = true;
-    group.add(log);
+    const cx = run.reduce<number>((sum, l) => sum + LANES[l], 0) / run.length;
+    const half = (run.length * LANE_WIDTH) / 2 - 0.1;
+    const dir = Math.random() < 0.5 ? -1 : 1; // which end is the thick base
+    const wobble = () => (Math.random() - 0.5) * 0.35;
+    const points = [0, 0.33, 0.66, 1].map(
+      (t) => new THREE.Vector3(cx + dir * (-half + 2 * half * t), 0.22 + wobble() * 0.4, wobble()),
+    );
+    const limb = new THREE.Mesh(taperedLimb(points, 0.32, 0.5), bark);
+    limb.castShadow = true;
+    group.add(limb);
 
-    for (const end of [-1, 1]) {
-      const cap = new THREE.Mesh(
-        new THREE.CircleGeometry(0.3, 10),
-        new THREE.MeshStandardMaterial({ color: PALETTE.logEnd }),
-      );
-      cap.position.set(x + end * (width / 2 + 0.005), 0.3, 0);
-      cap.rotation.y = (end * Math.PI) / 2;
-      group.add(cap);
-    }
-
-    // A couple of twigs with leaves, so it reads as a branch and not a pipe.
-    for (let i = 0; i < run.length + 1; i++) {
-      const tx = x - width / 2 + ((i + 0.5) / (run.length + 1)) * width;
-      const twig = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 1.1, 5), logMaterial());
-      twig.position.set(tx, 0.75, 0);
-      twig.rotation.z = (Math.random() - 0.5) * 1.2;
+    // Twigs sprouting up and forwards, each ending in a cluster of leaves.
+    const twigs = run.length * 2 + 1;
+    for (let i = 0; i < twigs; i++) {
+      const t = (i + 0.5) / twigs;
+      const base = new THREE.Vector3(cx + dir * (-half + 2 * half * t), 0.3, 0);
+      const lean = (Math.random() - 0.5) * 0.9;
+      const tip = base.clone().add(new THREE.Vector3(lean, 0.8 + Math.random() * 0.5, (Math.random() - 0.3) * 0.6));
+      const mid = base.clone().lerp(tip, 0.5).add(new THREE.Vector3(wobble(), 0, wobble()));
+      const twig = new THREE.Mesh(taperedLimb([base, mid, tip], 0.09, 0.35, 8), bark);
+      twig.castShadow = true;
       group.add(twig);
-      const leaf = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(0.32, 0),
-        new THREE.MeshStandardMaterial({ color: PALETTE.leaf, flatShading: true }),
-      );
-      leaf.position.set(tx + twig.rotation.z * -0.4, 1.25, 0);
-      group.add(leaf);
+      for (let k = 0; k < 11; k++) {
+        const card = new THREE.Mesh(leafGeo, leaf);
+        card.position.copy(base.clone().lerp(tip, 0.55 + Math.random() * 0.5)).add(new THREE.Vector3((Math.random() - 0.5) * 0.7, (Math.random() - 0.3) * 0.5, (Math.random() - 0.5) * 0.7));
+        card.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        card.castShadow = true;
+        group.add(card);
+      }
     }
   }
   return group;
 }
 
+// --- Bread ---------------------------------------------------------------------------------
+
+let bread: { geometry: THREE.ExtrudeGeometry; materials: THREE.Material[] } | null = null;
+
+/** A slice of bread: soft crumb faces, golden crust round the edge. Origin = slice centre. */
 export function makeCrumb(): THREE.Mesh {
-  const crumb = new THREE.Mesh(
-    new THREE.BoxGeometry(0.45, 0.3, 0.45),
-    new THREE.MeshStandardMaterial({ color: PALETTE.crumb, emissive: 0x6b4a10, emissiveIntensity: 0.35, roughness: 0.8 }),
-  );
-  crumb.position.y = 0.7;
-  crumb.castShadow = true;
-  return crumb;
+  if (!bread) {
+    // The classic toast outline: square bottom, two puffed lobes on top.
+    const s = new THREE.Shape();
+    s.moveTo(-0.38, -0.42);
+    s.lineTo(0.38, -0.42);
+    s.quadraticCurveTo(0.44, -0.42, 0.44, -0.34);
+    s.lineTo(0.42, 0.12);
+    s.bezierCurveTo(0.62, 0.2, 0.6, 0.52, 0.3, 0.56);
+    s.bezierCurveTo(0.12, 0.62, -0.12, 0.62, -0.3, 0.56);
+    s.bezierCurveTo(-0.6, 0.52, -0.62, 0.2, -0.42, 0.12);
+    s.lineTo(-0.44, -0.34);
+    s.quadraticCurveTo(-0.44, -0.42, -0.38, -0.42);
+    const geometry = new THREE.ExtrudeGeometry(s, {
+      depth: 0.14,
+      bevelEnabled: true,
+      bevelSize: 0.05,
+      bevelThickness: 0.05,
+      bevelSegments: 4,
+      curveSegments: 18,
+    });
+    geometry.center();
+    // ExtrudeGeometry's UVs are in shape units; remap the faces to 0..1 for the crumb texture.
+    const uv = geometry.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) + 0.5) / 1.1, (uv.getY(i) + 0.45) / 1.1);
+    bread = {
+      geometry,
+      materials: [
+        new THREE.MeshStandardMaterial({ map: crumbTexture(), roughness: 0.9, emissive: 0x3a2a10, emissiveIntensity: 0.25 }),
+        new THREE.MeshStandardMaterial({ color: 0xb8702e, roughness: 0.6 }),
+      ],
+    };
+  }
+  const slice = new THREE.Mesh(bread.geometry, bread.materials);
+  slice.scale.setScalar(0.85);
+  slice.position.y = 0.75;
+  slice.castShadow = true;
+  return slice;
 }
 
 export function makeHeart(): THREE.Mesh {
@@ -221,16 +149,23 @@ export function makeHeart(): THREE.Mesh {
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: 4,
     bevelEnabled: true,
-    bevelSize: 1,
-    bevelThickness: 1,
-    bevelSegments: 2,
+    bevelSize: 1.4,
+    bevelThickness: 1.4,
+    bevelSegments: 6,
+    curveSegments: 24,
   });
   geometry.center();
   geometry.rotateZ(Math.PI); // the shape is drawn point-up
   geometry.scale(0.05, 0.05, 0.05);
   const heart = new THREE.Mesh(
     geometry,
-    new THREE.MeshStandardMaterial({ color: PALETTE.heart, emissive: 0xc0124f, emissiveIntensity: 0.45 }),
+    new THREE.MeshPhysicalMaterial({
+      color: 0xff3d7f,
+      emissive: 0xc0124f,
+      emissiveIntensity: 0.6,
+      roughness: 0.25,
+      clearcoat: 1,
+    }),
   );
   heart.position.y = 1.1;
   heart.castShadow = true;
@@ -248,16 +183,16 @@ interface Particle {
   grow: number;
 }
 
-/** A small pool of blobs for splashes, wood chips and crumb pops. They drift with the world. */
+/** A small pool of blobs for splashes, wood chips and pops. They drift with the world. */
 export class Particles {
   readonly group = new THREE.Group();
   private readonly pool: Particle[] = [];
   private cursor = 0;
 
   constructor(size = 60) {
-    const geometry = new THREE.SphereGeometry(0.1, 6, 5);
+    const geometry = new THREE.SphereGeometry(0.1, 10, 8);
     for (let i = 0; i < size; i++) {
-      const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+      const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false });
       const mesh = new THREE.Mesh(geometry, material);
       mesh.visible = false;
       this.group.add(mesh);

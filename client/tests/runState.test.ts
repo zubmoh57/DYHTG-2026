@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/core/config';
 import {
+  addCoins,
   addScore,
   applyBossDamage,
   applyDamage,
-  applyOxygenLoss,
+  powerUpFor,
   collectHeart,
   createRunState,
   resetForAttempt,
@@ -54,14 +55,25 @@ describe('the heart (brief §4)', () => {
   });
 });
 
-describe('oxygen (brief §5)', () => {
-  it('is separate from lives and fails the run on the third loss', () => {
-    expect(applyOxygenLoss(run)).toBe('lost');
-    expect(applyOxygenLoss(run)).toBe('lost');
+describe('swim coins and power-ups (DESIGN_CHANGES.md)', () => {
+  it('collects coins, loses some on a hit, never below zero, and leaves lives alone', () => {
+    expect(addCoins(run, 12)).toBe(12);
+    expect(addCoins(run, -5)).toBe(-5);
+    expect(run.coins).toBe(7);
+    expect(addCoins(run, -50)).toBe(-7);
+    expect(run.coins).toBe(0);
     expect(run.lives).toBe(3);
-    expect(applyOxygenLoss(run)).toBe('empty');
-    expect(run.status).toBe('failed');
-    expect(run.failReason).toBe('oxygen');
+  });
+
+  it('buys the best power-up the coins can afford', () => {
+    expect(powerUpFor(0)).toBe('none');
+    expect(powerUpFor(19)).toBe('none');
+    expect(powerUpFor(20)).toBe('shield');
+    expect(powerUpFor(49)).toBe('shield');
+    expect(powerUpFor(50)).toBe('boost');
+    expect(powerUpFor(99)).toBe('boost');
+    expect(powerUpFor(100)).toBe('laser');
+    expect(powerUpFor(250)).toBe('laser');
   });
 });
 
@@ -91,7 +103,7 @@ describe('boss health (brief §6, addendum §1)', () => {
 describe('retry and clock (brief §7)', () => {
   it('resets everything except the seed and identity', () => {
     applyDamage(run, 0);
-    applyOxygenLoss(run);
+    addCoins(run, 30);
     collectHeart(run);
     addScore(run, 500);
     run.bossHealth = 10;
@@ -101,7 +113,7 @@ describe('retry and clock (brief §7)', () => {
       attemptId: 'a2',
       seed: 1,
       lives: 3,
-      oxygen: 3,
+      coins: 0,
       score: 0,
       bossHealth: CONFIG.boss.health,
       runnerSpeed: CONFIG.runner.startSpeed,
