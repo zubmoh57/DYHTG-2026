@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: start a local Postgres 16, then:
-#   createdb duck && psql -d duck -f supabase/tests/auth_stub.sql -f supabase/migrations/*.sql
+#   createdb duck && for f in supabase/tests/auth_stub.sql supabase/migrations/*.sql; do psql -d duck -f "$f"; done
 #   PGHOST=... bash supabase/tests/rls_test.sh
 # P below is the socket dir of that Postgres; change it (or the psql line) to match yours.
 # Runs each check as a given user and compares against the expected outcome.
@@ -111,6 +111,15 @@ check "update to the newest attempt is kept" "42" "$(as $A "select score from pu
 check "duplicate attempt id rejected" "duplicate key" "$(as $A "insert into public.attempts (room_id, client_attempt_id) values ('$ROOM', 'a2');")"
 check "outsider cannot read attempts" "0" "$(as $C "select count(*) from public.attempts;")"
 check "members read all attempts in the room" "3" "$(as $B "select count(*) from public.attempts;")"
+
+# Race rounds (20261017210000): the host reopens a finished race so new players can join.
+check "non-host cannot reopen" "not_host" "$(as $B "select public.reset_room('$ROOM');")"
+check "outsider cannot reopen" "room_not_found" "$(as $C "select public.reset_room('$ROOM');")"
+check "host reopens the room" '"status": "waiting"' "$(as $A "select public.reset_room('$ROOM');")"
+check "new player joins a reopened room" '"status": "waiting"' "$(as $D "select public.join_room('$CODE', 'Dee');")"
+as $B "select public.leave_room('$ROOM');" >/dev/null
+check "leaving a reopened room keeps that player's results" "1" "$(psql -h $P -p 54329 -U postgres -d duck -Atc "select count(*) from public.attempts where user_id = '$B';")"
+check "host starts the next race" '"status": "started"' "$(as $A "select public.start_room('$ROOM');")"
 
 r=""; for i in $(seq 1 25); do r=$(as $D "select public.join_room('QQQQ', 'Guess');"); done
 check "join guessing is rate limited" "rate_limited" "$r"

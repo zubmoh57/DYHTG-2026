@@ -5,7 +5,10 @@ Mayank owns Supabase setup, security rules, room logic, the live scoreboard and 
 ## Done
 
 - `supabase/migrations/20261017160000_rooms_players_attempts.sql`: tables `rooms`, `room_players` and `attempts`, row-level security, and the room functions.
-- `supabase/tests/`: 52 security checks that run against plain Postgres. Run them with `bash supabase/tests/rls_test.sh` (see the header of that file).
+- `supabase/migrations/20261017210000_race_rounds.sql` (Tejas): `reset_room`, so a room can race more than once.
+- `supabase/migrations/20261018000000_keep_attempts_on_leave.sql`: leaving a reopened room no longer deletes that player's results.
+- Run the migrations in filename order. The live project needs every one of them: the client calls `reset_room` to start a second race.
+- `supabase/tests/`: 60 security checks that run against plain Postgres. Run them with `bash supabase/tests/rls_test.sh` (see the header of that file).
 - `@supabase/supabase-js` is added to `client/package.json`. **Tejas owns that file, so get his OK before merging to `dev`.**
 
 ### Database functions (call with `supabase.rpc(name, args)`)
@@ -16,6 +19,7 @@ Mayank owns Supabase setup, security rules, room logic, the live scoreboard and 
 | `join_room` | `p_code`, `p_nickname` | Same as above, or `{ error: 'room_not_found' }` |
 | `start_room` | `p_room_id`, `p_delay_ms` (3000–15000, default 5000) | Same as above, with `start_at_ms` set |
 | `leave_room` | `p_room_id` | Nothing. It only removes the player before the start, and hands host to the next player |
+| `reset_room` | `p_room_id` | Host only. Puts a started room back to `waiting` for the next race. Same shape as `create_room` |
 | `heartbeat` | `p_room_id` | Server time in ms. Call it every 5 s for presence |
 | `server_now_ms` | none | Server time in ms, for clock-offset correction |
 
