@@ -1,6 +1,7 @@
 // Endings (Vansh): a short film for how Bill went out (a log, Biscuit or the Don) and one for the win.
-// They play over the results screen when the run fails or finishes; SPACE, a click or Skip moves on,
-// and a retry stops them. Played with the same film player as the intro.
+// SPACE or a click moves through it and Skip jumps to the end. The film then holds its last frame and
+// the results card (with Retry) moves onto it, so Retry sits on the animation's own background.
+// Played with the same film player as the intro.
 
 import type { AudioHandle } from '../audio';
 import type { Game } from '../core/Game';
@@ -171,12 +172,23 @@ export function mountEndings(root: HTMLElement, game: Game, audio: AudioHandle):
   let playing: { stop(): void } | null = null;
   const play = (shots: Shot<EndingScene>[]) => {
     playing?.stop();
-    playing = playFilm(root, audio, shots, ENDING_SCENES, () => (playing = null));
+    const film = playFilm(root, audio, shots, ENDING_SCENES, (frame) => {
+      // The results card (ui/results.ts) is already up behind the film: bring it onto the last frame.
+      const card = [...root.children].find((n) => n.classList.contains('panel') && !n.classList.contains('lobby'));
+      if (card) {
+        card.classList.add('end-card');
+        frame.appendChild(card);
+      }
+    }, { hold: true });
+    playing = film;
   };
 
   game.onEvent((event) => {
     if (event.type === 'runFailed') cause = event.cause ?? 'log';
-    else if (event.type === 'attemptStarted') playing?.stop(); // Retry: straight back into the run
+    else if (event.type === 'attemptStarted') {
+      playing?.stop(); // Retry: straight back into the run
+      playing = null;
+    }
     else if (event.type === 'stageChanged' && event.stage === 'FAILED') play(DEATH_FILMS[cause]);
     else if (event.type === 'stageChanged' && event.stage === 'FINISHED') play(WIN_FILM);
   });
