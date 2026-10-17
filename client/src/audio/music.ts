@@ -50,6 +50,9 @@ const Gm = [58, 62, 67];
 const DmPad = [62, 65, 69];
 const CsDim = [61, 64, 67];
 const EbPad = [63, 67, 70];
+const CmNoir = [60, 63, 67, 70];
+const AbNoir = [60, 63, 68, 72];
+const G7b9 = [59, 62, 65, 68];
 
 export const TRACKS: Record<MusicTrack, Track> = {
   // Lobby: a lazy E dorian vamp to bob your head to while everyone joins.
@@ -81,6 +84,34 @@ export const TRACKS: Record<MusicTrack, Track> = {
       openHat: '--------------x-',
     },
     cutoff: 5000,
+  },
+  // Story intro: a sneaky noir walk in C minor. Walking bass, brushed hats, muted horn. Trouble is coming.
+  intro: {
+    bpm: 84,
+    swing: 0.3,
+    bass: [
+      36, _, _, _, 39, _, _, _, 41, _, _, _, 42, _, _, _,
+      43, _, _, _, 41, _, _, _, 39, _, _, _, 38, _, _, _,
+    ],
+    bassCutoff: 700,
+    lead: [
+      _, _, _, _, _, _, _, _, 67, _, 70, _, 66, _, _, _,
+      _, _, _, _, _, _, _, _, 67, _, 63, _, 62, _, _, _,
+      _, _, _, _, _, _, _, _, 67, _, 70, _, 72, _, 71, _,
+      70, _, _, _, 67, _, _, _, 66, _, _, _, 67, _, _, _,
+    ],
+    leadType: 'sawtooth',
+    chords: [
+      CmNoir, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+      AbNoir, _, _, _, _, _, _, _, G7b9, _, _, _, _, _, _, _,
+    ],
+    chordLen: 6,
+    drums: {
+      kick: 'x-------x-------',
+      ghost: '----x-------x---',
+      hat: 'x--xx--xx--xx--x',
+    },
+    cutoff: 2200,
   },
   // Runner: a fast, driving C minor chase. The dog is behind you and the track never lets up.
   runner: {

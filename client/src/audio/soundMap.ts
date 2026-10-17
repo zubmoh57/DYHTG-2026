@@ -41,9 +41,11 @@ export type SoundName =
   | 'victory'
   | 'failed'
   | 'countdownTick'
-  | 'go';
+  | 'go'
+  | 'sting'
+  | 'titleHit';
 
-export type MusicTrack = 'lobby' | 'runner' | 'underwater' | 'boss';
+export type MusicTrack = 'lobby' | 'intro' | 'runner' | 'underwater' | 'boss';
 
 /** `cue` names the phases emit, and the sound each one plays. Unknown cues stay silent. */
 export const CUE_SOUNDS: Record<string, SoundName> = {

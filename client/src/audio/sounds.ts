@@ -216,4 +216,22 @@ export const SOUNDS: Record<SoundName, (s: Synth) => void> = {
     s.noise({ dur: 0.3, gain: 0.25, filter: { type: 'highpass', freq: 3000 } });
     quack(s, 1.1, 0.05);
   },
+
+  // Story intro: a noir piano "dun dun DUN" for dramatic reveals.
+  sting: (s) => {
+    [[50, 0], [50, 0.22], [49, 0.44]].forEach(([n, at], i) => {
+      const dur = i === 2 ? 1.1 : 0.2;
+      for (const note of [n, n + 12, n + 15]) {
+        s.tone({ freq: midiToFreq(note), type: 'triangle', at, dur, gain: 0.12 });
+        s.tone({ freq: midiToFreq(note) * 2.01, type: 'sine', at, dur: dur * 0.5, gain: 0.04 });
+      }
+    });
+  },
+
+  // The title card: a big low hit with a cymbal wash.
+  titleHit: (s) => {
+    s.tone({ freq: 110, to: 30, dur: 1.2, gain: 0.7 });
+    s.noise({ dur: 1.6, gain: 0.25, filter: { type: 'highpass', freq: 5000 } });
+    for (const n of [38, 45, 50, 53]) s.tone({ freq: midiToFreq(n), type: 'sawtooth', dur: 1.5, gain: 0.07, filter: { type: 'lowpass', freq: 1200 } });
+  },
 };

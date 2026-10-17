@@ -7,7 +7,7 @@
 import type { Game } from '../core/Game';
 import { onButton } from '../ui/dom';
 import { Music } from './music';
-import { countdownTicked, musicFor, musicMood, soundsFor } from './soundMap';
+import { countdownTicked, musicFor, musicMood, soundsFor, type MusicTrack, type SoundName } from './soundMap';
 import { SOUNDS } from './sounds';
 import { Synth } from './synth';
 
@@ -18,6 +18,10 @@ const DEFAULT_VOLUME = 0.8;
 export interface AudioHandle {
   /** A labelled volume slider, for the home menu. */
   volumeControl: HTMLElement;
+  /** Play a track regardless of the stage (the story intro), or null to go back to the stage's music. */
+  setMusicOverride(track: MusicTrack | null): void;
+  /** Play one sound effect now, if audio is unlocked. */
+  playSound(name: SoundName): void;
 }
 
 function loadVolume(): number {
@@ -58,6 +62,8 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
   let music: Music | null = null;
   let muted = loadMuted();
   let volume = loadVolume();
+  let override: MusicTrack | null = null;
+  const wantedTrack = () => override ?? musicFor(game.stage);
 
   const applyMute = () => {
     if (!synth) return;
@@ -74,7 +80,7 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
       }
       music = new Music(synth);
       applyMute();
-      music.play(musicFor(game.stage));
+      music.play(wantedTrack());
     }
     if (synth.ctx.state === 'suspended') void synth.ctx.resume();
   };
@@ -90,7 +96,7 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
   game.onEvent((event) => {
     if (!synth) return;
     for (const name of soundsFor(event)) SOUNDS[name](synth);
-    if (event.type === 'stageChanged') music?.play(musicFor(event.stage));
+    if (event.type === 'stageChanged') music?.play(wantedTrack());
   });
 
   let lastCountdown = 0;
@@ -161,5 +167,14 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
     slider.value = String(Math.round((muted ? 0 : volume) * 100));
   });
 
-  return { volumeControl };
+  return {
+    volumeControl,
+    setMusicOverride(track) {
+      override = track;
+      music?.play(wantedTrack());
+    },
+    playSound(name) {
+      if (synth) SOUNDS[name](synth);
+    },
+  };
 }
