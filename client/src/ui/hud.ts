@@ -7,6 +7,7 @@ import type { InputMode, Stage } from '../core/types';
 import { powerUpFor, raceScore } from '../core/RunState';
 import type { PowerUp } from '../core/types';
 import { el, formatTime } from './dom';
+import { STAGE_LABEL } from './stageNames';
 
 const POWER_LABEL: Record<PowerUp, string> = {
   none: '',
@@ -102,7 +103,7 @@ export function mountHud(root: HTMLElement, game: Game): void {
     coinTrack.show(swimming, run.coins);
     // The boss arena shows its power-up in the scene (shield, red eyes), so the label stays out of the way there.
     set(power, afterSwim && run.stage !== 'BOSS' ? POWER_LABEL[powerUpFor(run.coins)] : '');
-    set(stage, run.stage);
+    set(stage, STAGE_LABEL[run.stage]);
     set(time, formatTime(run.elapsedMs));
     set(score, `${raceScore(run).toLocaleString()} pts`); // the race score rooms rank by
     set(keys, KEY_HINT[inputMode]);

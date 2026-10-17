@@ -4,6 +4,7 @@
 import type { Game } from '../core/Game';
 import { raceScore } from '../core/RunState';
 import { el, formatTime, onButton } from './dom';
+import { SECTION_LABEL } from './stageNames';
 
 export interface ResultsOptions {
   onRetry(): void;
@@ -40,7 +41,7 @@ export function mountResults(root: HTMLElement, game: Game, options: ResultsOpti
       el('p', {
         text: finished
           ? `Time ${formatTime(run.elapsedMs)} · ${raceScore(run).toLocaleString()} pts`
-          : `Out of lives in ${run.phase} · ${raceScore(run).toLocaleString()} pts`,
+          : `Out of lives in ${SECTION_LABEL[run.phase]} · ${raceScore(run).toLocaleString()} pts`,
       }),
       el('p', { className: 'muted', text: bestMs === null ? 'No completed run yet' : `Best ${formatTime(bestMs)}` }),
       retry,

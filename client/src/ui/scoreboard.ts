@@ -5,13 +5,9 @@ import type { PhaseId } from '../core/types';
 import type { ScoreboardEntry } from '../network/ranking';
 import { el, formatTime } from './dom';
 import './scoreboard.css';
+import { SECTION_LABEL } from './stageNames';
 
-const SECTION_NAME: Record<PhaseId, string> = {
-  runner1: 'Runner 1',
-  underwater: 'Underwater',
-  runner2: 'Runner 2',
-  boss: 'Boss',
-};
+const SECTION_NAME: Record<PhaseId, string> = SECTION_LABEL;
 
 export interface ScoreboardHandle {
   update(entries: readonly ScoreboardEntry[]): void;

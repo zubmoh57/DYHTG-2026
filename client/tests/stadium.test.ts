@@ -72,7 +72,7 @@ describe('commentary', () => {
     expect(commentary(before, after)).toEqual([
       '🏆 CAT beat the Don in 1:12.34!',
       '🌊 ANN dives into the pond!',
-      '🪵 BOB crashed out on the way back!',
+      '🪵 BOB crashed out in Stage 2!',
     ]);
   });
 

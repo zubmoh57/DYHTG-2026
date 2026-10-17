@@ -29,14 +29,16 @@ The swim is **hard on purpose**: about 120 coins on a trail that hops lanes ever
 
 ## Pacing (latest)
 
+Players see the stages as **Stage 1 · Forest road**, **Underwater**, **Stage 2 · Back on the road** and **Boss · Don Crumbs** (`ui/stageNames.ts`); the code keeps its ids (RUNNER_1, runner1…).
+
 | Stage | Length | Top speed |
 |---|---|---|
-| Runner 1 | ~20 s (410 units) | 22 |
-| Swim | ~15 s (270 units) | 18 |
-| Runner 2 | ~10 s (255 units) | 26: the duck gets faster each stage |
+| Stage 1 (Runner 1) | ~20 s (410 units) | 22 |
+| Underwater (swim) | ~15 s (270 units) | 18 |
+| Stage 2 (Runner 2) | ~15 s (385 units) | 26: the duck gets faster each stage |
 | Boss | ~5 s per round | 3 quick shots (0.75 s apart), then a short Ready → Aim → FIRE |
 
-A full run is about 65–80 s.
+About 60 s to reach the boss, including the dive and surfacing; a full run is about 75–95 s. Solo practice and room races use the same course (`CONFIG.flow.roomCourseScale` can shorten room races if ever needed).
 
 ## The dog (Runner 1)
 
@@ -53,7 +55,7 @@ The boss timings, damage curve, no-press outcome, bullet aim and the 300,000-poi
 1. **Title screen:** a looping chase (Bill, Biscuit and the Don) behind the logo. Solo practice, Create room, or Join with a code.
 2. **Create room → the pond lobby.** Every player is a Bill floating on a pond, in their own coat colour. The host's screen shows a **QR code**; phones scan it, land on a "You're invited" screen, type a name and jump in.
 3. **Leaderboard** beside the pond: everyone on 0 before the first race.
-4. **The host starts the race.** Everyone gets the same **3-2-1** and plays a **sprint** of the course (every section at 45% length, about 45 s) on their own device. The story intro plays in solo practice, not before room races, so judges get straight into the action.
+4. **The host starts the race.** Everyone gets the same **3-2-1** and plays the same course on their own device. The story intro plays in solo practice, not before room races, so judges get straight into the action.
 5. **End of a run:** your score, your place (live while others are still racing) and the standings. Then **back to the pond** (button, or after 20 s), where the leaderboard shows the last race. The host can start the next race; new players can join between races.
 
 **Big-screen mode** (`ui/stadium.ts`): on the laptop that's on the projector, switch on "📺 Big-screen mode" in the pond lobby (laptops only; remembered per tab). That screen then doesn't play: it shows every racer as a duck moving along one track (road → pond → road → Don Crumbs), a live clock, a QR to join the next race, and commentary ("Mayank dives into the pond!", "Don Crumbs got Rayyan!", lead changes). When everyone is done (or the host presses "End race"), a podium rises with confetti and the Don roasts whoever came last. Once a race has started, the leaderboard lists only the people who raced, so the big screen and late joiners never sit on it at 0.

@@ -40,15 +40,15 @@ export function raceIsOver(lanes: readonly ScoreboardEntry[], secondsSinceGo: nu
 }
 
 const FAIL_LINE: Record<string, (n: string) => string> = {
-  runner1: (n) => `🪵 ${n} is out on the forest road!`,
+  runner1: (n) => `🪵 ${n} is out in Stage 1!`,
   underwater: (n) => `🫧 ${n} sank in the pond!`,
-  runner2: (n) => `🪵 ${n} crashed out on the way back!`,
+  runner2: (n) => `🪵 ${n} crashed out in Stage 2!`,
   boss: (n) => `💀 Don Crumbs got ${n}!`,
 };
 
 const SECTION_LINE: Record<string, (n: string) => string> = {
   underwater: (n) => `🌊 ${n} dives into the pond!`,
-  runner2: (n) => `💵 ${n} grabbed the dollar and is back on the road!`,
+  runner2: (n) => `💵 ${n} grabbed the dollar and is into Stage 2!`,
   boss: (n) => `🎩 ${n} has reached Don Crumbs!`,
 };
 
@@ -166,10 +166,10 @@ export function mountStadium(root: HTMLElement, rooms: RoomApi, onBack: () => vo
 
     // The track: four sections, one lane per racer.
     const sections = el('div', { className: 'st-sections' }, [
-      el('span', { text: '🌲 Forest road' }),
-      el('span', { text: '🌊 Pond swim' }),
-      el('span', { text: '🌲 Back on the road' }),
-      el('span', { text: '🎩 Don Crumbs' }),
+      el('span', { text: '🌲 Stage 1' }),
+      el('span', { text: '🌊 Underwater' }),
+      el('span', { text: '🌲 Stage 2' }),
+      el('span', { text: '🎩 Boss' }),
     ]);
     const lanesBox = el('div', { className: 'st-lanes' });
     const laneEls = new Map<string, { row: HTMLElement; token: HTMLElement; place: HTMLElement; name: HTMLElement; score: HTMLElement; status: HTMLElement }>();

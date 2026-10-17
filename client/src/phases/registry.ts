@@ -28,7 +28,7 @@ export function buildPhases(scale: number): Partial<Record<Stage, PhaseFactory>>
 
 /** Solo practice: the full run. */
 export const PHASES = buildPhases(SHORT ? 0.2 : 1);
-/** Room races: a sprint, so a race (and a judge's turn) stays short. Everyone in a room uses the same lengths. */
+/** Room races: CONFIG.flow.roomCourseScale of the full course (the full run by default). Everyone in a room uses the same lengths. */
 export const ROOM_PHASES = buildPhases(SHORT ? 0.2 : CONFIG.flow.roomCourseScale);
 
 /** `?phase=` values for jumping straight into a stage while developing. */

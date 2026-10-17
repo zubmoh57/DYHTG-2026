@@ -124,7 +124,7 @@ describe('scoreboard labels', () => {
   it('says what each player is doing', () => {
     expect(describeEntry(entry)).toBe('Underwater 46%');
     expect(describeEntry({ ...entry, state: 'finished', timeMs: 83450 })).toBe('1:23.45');
-    expect(describeEntry({ ...entry, state: 'failed', phase: 'runner2' })).toBe('Out in Runner 2');
+    expect(describeEntry({ ...entry, state: 'failed', phase: 'runner2' })).toBe('Out in Stage 2');
     expect(describeEntry({ ...entry, state: 'waiting' })).toBe('Ready');
   });
 });

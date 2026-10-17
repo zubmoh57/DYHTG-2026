@@ -10,8 +10,9 @@ export const CONFIG = {
     invulnerableSec: 1, // confirmed
   },
   /**
-   * Pacing (Tejas, 17 Oct): about 20 s for Runner 1, 15 s for the swim, 10 s for Runner 2, and the
-   * duck gets a little faster each stage (22 → 26 top speed). Distances are fixed; times vary.
+   * Pacing (Tejas, 18 Oct): about 20 s for Stage 1 (Runner 1), 15 s for the swim, 15 s for Stage 2
+   * (Runner 2), then the boss. The duck gets a little faster each stage (22 → 26 top speed); its speed
+   * carries from Stage 1 into Stage 2. Distances are fixed; times vary with hits and the boost.
    */
   runner: {
     lanes: [-2.5, 0, 2.5] as const,
@@ -22,7 +23,7 @@ export const CONFIG = {
     acceleration: 1.4,
     hitSpeedMultiplier: 0.7, // confirmed: a hit removes 30% of current speed
     runner1Distance: 410, // ~20 s
-    runner2Distance: 255, // ~10 s
+    runner2Distance: 385, // ~15 s (starts at ~22, builds to 26)
   },
   /** The swim (DESIGN_CHANGES.md): A/D lanes, dodge sea creatures, collect coins. */
   swim: {
@@ -78,7 +79,10 @@ export const CONFIG = {
   },
   flow: {
     countdownSec: 3,
-    /** Room races are sprints (Tejas): every section at this share of its full length, about 45 s a race. */
-    roomCourseScale: 0.45,
+    /**
+     * Room races use the full course (1). Below 1 shortens every section for a quicker party race,
+     * e.g. 0.5 for about 25 s before the boss.
+     */
+    roomCourseScale: 1,
   },
 } as const;
