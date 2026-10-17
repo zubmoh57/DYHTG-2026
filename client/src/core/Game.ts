@@ -260,7 +260,8 @@ export class Game {
     this.state.phaseLength = 0;
     this.camera = this.defaultCamera;
     this.resetCamera();
-    this.resetBill();
+    // Transitions pick Bill up from the lane the runner left him in, instead of snapping him to the middle.
+    this.resetBill(stage === 'SUB_ENTRY' || stage === 'SURFACE_RETURN');
     this.setInputMode(STAGE_INPUT[stage].start);
     this.emit({ type: 'stageChanged', stage, previous });
 
@@ -416,9 +417,9 @@ export class Game {
   }
 
   /** Bill faces -Z (away from the camera) at the origin, visible and idle. */
-  private resetBill(): void {
+  private resetBill(keepLane = false): void {
     const o = this.bill.object;
-    o.position.set(0, 0, 0);
+    o.position.set(keepLane ? o.position.x : 0, 0, 0);
     o.rotation.set(0, Math.PI, 0);
     o.scale.set(1, 1, 1);
     o.visible = true;

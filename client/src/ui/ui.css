@@ -219,6 +219,13 @@ body {
   transition: width 0.2s;
 }
 
+/* Transition fades (to/from the sea, the surface flash) */
+.fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 /* Full-screen flash on a hit (red edges) or the heart (pink). Restarted by toggling the class. */
 .screen-flash {
   position: absolute;
