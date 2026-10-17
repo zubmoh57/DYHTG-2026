@@ -124,6 +124,11 @@ export interface FilmOptions {
   endsAt?: number;
   /** A music track to play for the length of the film. */
   music?: MusicTrack;
+  /**
+   * Stay on the last shot when it ends (its looping parts keep moving) instead of closing, so the
+   * caller can put an end card on it; onDone gets the frame for that. stop() closes it.
+   */
+  hold?: boolean;
 }
 
 /** Play `shots` over `root`, then call onDone (after the last shot, a skip, or at endsAt). */
@@ -132,7 +137,7 @@ export function playFilm(
   audio: AudioHandle,
   shots: Shot[],
   art: Record<string, string>,
-  onDone: () => void,
+  onDone: (frame: HTMLElement) => void,
   options: FilmOptions = {},
 ): { stop(): void } {
   const durs = shots.map((s) => s.dur);
@@ -159,19 +164,38 @@ export function playFilm(
   let raf = 0;
   let done = false;
 
-  const finish = () => {
-    if (done) return;
+  let closed = false;
+  /** Close the film for good. */
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    const wasDone = done;
     done = true;
     cancelAnimationFrame(raf);
     window.removeEventListener('keydown', onKey, true);
     overlay.classList.add('closing');
     if (options.music) audio.setMusicOverride(null);
     setTimeout(() => overlay.remove(), 450);
-    onDone();
+    if (!wasDone) onDone(frame);
+  };
+
+  /** The film has run out: close it, or hold the last frame for an end card. */
+  const finish = () => {
+    if (!options.hold) return close();
+    if (done) return;
+    done = true;
+    cancelAnimationFrame(raf);
+    window.removeEventListener('keydown', onKey, true);
+    skip.remove();
+    hint.remove();
+    progress.remove();
+    overlay.classList.add('held');
+    onDone(frame);
   };
 
   /** Hard cut to shot i, starting `into` seconds in (rooms join the film where the clock says). */
   const cut = (i: number, into = 0) => {
+    if (done) return;
     if (i >= shots.length) return finish();
     index = i;
     shownAt = performance.now() - ms(into);
@@ -215,9 +239,18 @@ export function playFilm(
     hint.remove();
   } else {
     barAnim.pause();
-    onButton(skip, finish);
+    // Skip: straight to the end card when there is one, otherwise close.
+    onButton(skip, () => {
+      if (!options.hold) return close();
+      const last = shots.length - 1;
+      if (index !== last) cut(last, shots[last].dur);
+      current?.anims.forEach((a) => {
+        if (a.effect?.getTiming().iterations !== Infinity) a.finish();
+      });
+      finish();
+    });
     overlay.addEventListener('click', (e) => {
-      if (e.target !== skip) cut(index + 1);
+      if (!done && e.target !== skip) cut(index + 1);
     });
   }
   window.addEventListener('keydown', onKey, true);
@@ -226,5 +259,5 @@ export function playFilm(
   if (options.music) audio.setMusicOverride(options.music);
   cut(0);
   raf = requestAnimationFrame(tick);
-  return { stop: finish };
+  return { stop: close };
 }
