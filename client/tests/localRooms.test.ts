@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { createLocalRooms, memoryRoomStore } from '../src/network/localRooms';
+import { OfflineRoomService } from '../src/network/offlineRoomService';
+import type { RoomStore } from '../src/network/localRooms';
+import type { RoomApi } from '../src/network/types';
 import type { RoomPlayer } from '../src/network/types';
 
 /** Two RoomApis sharing one store behave like two browser tabs. */
-const twoTabs = () => {
-  const store = memoryRoomStore();
-  return [createLocalRooms(store), createLocalRooms(store)] as const;
-};
-
-describe('local test rooms', () => {
+describe.each([
+  { name: 'local room storage', create: createLocalRooms },
+  { name: 'offline room service used by the game', create: (store: RoomStore) => new OfflineRoomService(store) },
+])('$name', ({ create }: { create: (store: RoomStore) => RoomApi }) => {
+  const twoTabs = () => {
+    const store = memoryRoomStore();
+    return [create(store), create(store)] as const;
+  };
   it('lets a second player join with the code and see the same seed', async () => {
     const [host, guest] = twoTabs();
     const room = await host.createRoom('Tejas');

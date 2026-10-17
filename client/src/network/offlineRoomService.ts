@@ -1,29 +1,50 @@
 // offline mode game room service
-import type { AttemptProgress, AttemptResult, RoomSession } from './types'
+import type { AttemptProgress, AttemptResult, RoomInfo, RoomPlayer } from './types'
+import { createLocalRooms, type LocalRoomApi, type RoomStore } from './localRooms';
 import type {RoomService} from './roomService';
 
-const OFFLINE_PLAYER_ID = 'offline-player';
-
 export class OfflineRoomService implements RoomService {
-  private session: RoomSession | null = null;
+  readonly mode = 'local' as const;
+  private readonly rooms: LocalRoomApi;
+  private session: RoomInfo | null = null;
   private currentAttemptId: string | null = null;
   private latestProgress: AttemptProgress | null = null;
   private finalResult: AttemptResult | null = null;
 
-  async joinRoom(roomCode: string, playerName: string): Promise<RoomSession> {
-    // create the local session for offline mode 
-    this.session = {
-      roomId: roomCode,
-      playerId: OFFLINE_PLAYER_ID,
-      playerName: playerName,
-      gameVersion: '1.0.0',
-      seed: Math.floor(Math.random() * 1000000),
-    }
+  constructor(store?: RoomStore) {
+    this.rooms = createLocalRooms(store);
+  }
+
+  async createRoom(nickname: string): Promise<RoomInfo> {
+    await this.leaveRoom();
+    this.session = await this.rooms.createRoom(nickname);
+    return this.session;
+  }
+
+  async joinRoom(roomCode: string, playerName: string): Promise<RoomInfo> {
+    await this.leaveRoom();
+    this.session = await this.rooms.joinRoom(roomCode, playerName);
+    return this.session;
+  }
+
+  onPlayersChanged(listener: (players: RoomPlayer[]) => void): () => void {
+    return this.rooms.onPlayersChanged(listener);
+  }
+
+  onStart(listener: (startAtEpochMs: number) => void): () => void {
+    return this.rooms.onStart(listener);
+  }
+
+  startRoom(): Promise<void> {
+    return this.rooms.startRoom();
+  }
+
+  async leaveRoom(): Promise<void> {
+    await this.rooms.leaveRoom();
+    this.session = null;
     this.currentAttemptId = null;
     this.latestProgress = null;
     this.finalResult = null;
-    
-    return this.session;
   }
 
 
@@ -59,9 +80,7 @@ export class OfflineRoomService implements RoomService {
   }
 
   async dispose(): Promise<void> {
-    this.session = null;
-    this.currentAttemptId = null;
-    this.latestProgress = null;
-    this.finalResult = null;
+    await this.leaveRoom();
+    await this.rooms.dispose();
   }
 }

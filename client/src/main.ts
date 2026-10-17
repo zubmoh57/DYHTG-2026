@@ -9,7 +9,7 @@
 
 import './ui/ui.css';
 import { Game } from './core/Game';
-import { createLocalRooms } from './network/localRooms';
+import { OfflineRoomService } from './network/offlineRoomService';
 import type { RoomApi } from './network/types';
 import { DEV_JUMPS, PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
@@ -21,7 +21,7 @@ const params = new URLSearchParams(window.location.search);
 const soloSeed = Number(params.get('seed')) || 20261017;
 
 // Swap this one line for the Supabase RoomApi when Mayank + Rayyan's backend is ready.
-const rooms: RoomApi = createLocalRooms();
+const rooms: RoomApi = new OfflineRoomService();
 
 const game = new Game({
   container: document.getElementById('game')!,

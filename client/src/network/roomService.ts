@@ -1,13 +1,9 @@
-// an interface that describes the type of fucntion that is used to send a message to the server
+// The lobby's RoomApi plus attempt publishing. Room membership has one shared contract.
 
-import type { AttemptProgress, AttemptResult, RoomSession } from './types'
+import type { AttemptProgress, AttemptResult, RoomApi } from './types'
 
-export interface RoomService {
-  // fucntions to implement (like an interface in java)
-
-  joinRoom(roomCode: string, playerName: string): Promise<RoomSession>
-
-  // fucntion to start an attempt in the room
+export interface RoomService extends RoomApi {
+  // Start tracking an attempt in the current room.
   startAttempt(): Promise<{ attemptId: string }>
 
   publishAttemptProgress(attemptProgress: AttemptProgress): Promise<void>

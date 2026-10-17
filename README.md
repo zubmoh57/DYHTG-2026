@@ -15,6 +15,16 @@ The updated Duck Run design supersedes the older Two Keys flight and boss-circle
 
 ## Team and branches
 
+### Active code paths
+
+- `client/src/main.ts` uses `OfflineRoomService` for the lobby. It delegates room membership, shared seeds and synchronized starts to `network/localRooms.ts`; both use the `RoomApi` contract. Rooms work across tabs in the same browser.
+- `course/generateCourse.ts` is the runner course generator; `phases/underwater/swimCourse.ts` generates the separate swim course.
+- `ui/results.ts` is the results screen. Extend it rather than adding a second screen.
+- `phases/underwater/SwimPhase.ts` implements the current coin swim. The old oxygen/timing-ring simulation has been removed.
+- `phases/boss/BossPhase.ts` renders and adapts the rules in `sim/boss.ts`; both are needed.
+
+Online Supabase rooms and progress/result publishing from game events remain unfinished. The offline service retains attempt-storage methods for that integration; the game currently uses its lobby methods only.
+
 Team 46 [AKA team monster] 
 8 - branches
 

@@ -13,7 +13,7 @@ import { showToast } from '../../ui/toast';
 import { CameraRig } from './cameraRig';
 import { DogView } from './dogView';
 import { Particles, RunnerWorld, makeBranch, makeCrumb, makeHeart } from './runnerView';
-import { buildStarterCourse } from './starterCourse';
+import { buildStarterCourse } from '../../course/generateCourse';
 
 export interface RunnerOptions {
   section: 'runner1' | 'runner2';
