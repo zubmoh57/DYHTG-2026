@@ -1,40 +1,158 @@
-# Duck Run
+<p align="center">
+  <img src="docs/character/bill.svg" alt="Bill the duck" width="150">
+</p>
 
-Funny, colourful 3D browser game for the JPMorgan hackathon.
+<h1 align="center">🦆 Duck Run</h1>
 
-## Shared context
+<p align="center"><b>Two buttons. A whole room of players. One duck in debt to the mafia.</b><br>
+A 3D browser game for the JPMorgan Chase challenge: <i>make something fun that uses two buttons or actions maximum.</i></p>
 
-Read these before implementing an assigned feature:
+---
 
-- [Game brief](docs/GAME_BRIEF.md): confirmed mechanics, technical recommendations, and open decisions.
-- [Additional information](ADDITIONAL_INFO.md): boss, targeting, score, and completion clarifications.
-- [Team split](docs/TEAM_SPLIT.md): current ownership and integration boundaries.
-- [Bill the duck](docs/character/CHARACTER.md): existing character and preview reference.
+## The pitch
 
-The updated Duck Run design supersedes the older Two Keys flight and boss-circle design. Follow the per-phase A/D/Space controls in the game brief.
+Bill the duck borrowed breadcrumbs from **Don Crumbs**, a mafia pigeon charging 400% a week. Now he has to run for it: down a muddy forest road with the Don's dog on his tail, into a pond full of coins, back up the road, and finally face the Don himself.
 
-## Team and branches
+Duck Run is built around one rule: **every decision in the game is left or right.** Two buttons, nothing else, from the first lane change to the final shot at the boss.
 
-### Active code paths
+And it's built to be played **together, in the room**. The host puts the game on a big screen, everyone scans a QR code, and within seconds the whole room is racing on their phones while the projector shows every duck on one track, live commentary and a podium at the end.
 
-- `client/src/main.ts` uses `OfflineRoomService` for the lobby. It delegates room membership, shared seeds and synchronized starts to `network/localRooms.ts`; both use the `RoomApi` contract. Rooms work across tabs in the same browser.
-- `course/generateCourse.ts` is the runner course generator; `phases/underwater/swimCourse.ts` generates the separate swim course.
-- `ui/results.ts` is the results screen. Extend it rather than adding a second screen.
-- `phases/underwater/SwimPhase.ts` implements the current coin swim. The old oxygen/timing-ring simulation has been removed.
-- `phases/boss/BossPhase.ts` renders and adapts the rules in `sim/boss.ts`; both are needed.
+## Two buttons, really
 
-Online Supabase rooms and progress/result publishing from game events remain unfinished. The offline service retains attempt-storage methods for that integration; the game currently uses its lobby methods only.
+| | Left button | Right button |
+|---|---|---|
+| **Laptop** | `A` | `D` |
+| **Phone** | tap the left half of the screen | tap the right half of the screen |
 
-Team 46 [AKA team monster] 
-8 - branches
+- **Dodging** (forest road, pond): left and right change lane.
+- **Boss fight:** when **FIRE** flashes, press **either** button as fast as you can. Faster = more damage. Too early, or holding a button through FIRE, does almost nothing.
+- **Cards and cutscenes:** either button continues.
 
-main (default)
-dev - (this is where we push our code ONLY WHEN YOU COMPLETE IN YOUR BRANCH)
-dev-test - (testing of dev branch MUST BE IN SYNC WITH DEV)
+There is no third key. Because any two buttons will do, the game also works one-handed, with two thumbs, or with two accessibility switches.
 
-the rest 5 are the branches based on members
-1. Tejas-br
-2. rayyan-br
-3. mayank-br
-4. Zubair-br
-5. Vansh-br
+## Play together
+
+1. **Host:** open the game on the laptop connected to the projector → *Create room*. You land in the **pond lobby**, where every player floats as a Bill in their own coloured suit.
+2. **Everyone else:** scan the **QR code** on screen, type a name, tap *Jump in*. Your duck splashes into the pond.
+3. **Host:** switch on **📺 Big-screen mode** so the projector watches instead of playing, then press **Start race**.
+4. Everyone gets the same 3-2-1 and runs the **same course** (each room has its own seed) on their own phone.
+5. The **big screen** shows every duck moving along one track, a live clock and commentary: *"Mayank dives into the pond!"*, *"Don Crumbs got Rayyan!"*, *"Vansh takes the lead!"*.
+6. When everyone has finished or been knocked out, a **podium** rises with confetti, and the Don roasts whoever came last.
+7. Everyone heads **back to the pond**, and the host can start the next race. New players can scan in between races.
+
+Prefer to play alone? **Solo practice** opens with the story as a short animated film, then plays the same run.
+
+## How a run plays (about 1½ minutes)
+
+| | What happens | Time |
+|---|---|---|
+| **Stage 1 · Forest road** | Dodge fallen logs in three lanes. Hit one and the Don's dog catches up; hit another while it's close and it bites. | ~20 s |
+| **Into the pond** | A pond appears in the road; Bill dives in. | |
+| **Underwater** | Collect coins and dodge jellyfish and pufferfish. Coins buy a power-up for later: **20** = shield, **50** = speed boost, **100** = laser +50%. | ~15 s |
+| **Back to the surface** | Bill's eyes turn to dollar signs; he grabs a dollar on a fishing line and gets yanked back up. | |
+| **Stage 2 · Back on the road** | Faster now. Breadcrumbs for points, a heart for an extra life. | ~15 s |
+| **Boss · Don Crumbs** | Dodge three aimed shots, then *Ready… Aim… FIRE!* Hit the button fast to laser the Don. Repeat until one of you goes down. | |
+
+You have 3 lives. The **score** rewards how far you got, coins and breadcrumbs. Beating the Don adds a big bonus, plus extra for every second under two minutes and every life left, so any win outranks any run that didn't make it. Each stage starts with a short card explaining what to do.
+
+## Run it yourself
+
+You need **Node 20.19+**.
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173**. The dev server also listens on your Wi-Fi: phones on the same network can open the **Network** address it prints, or just scan the QR code in a room.
+
+### Online rooms (phones on different devices)
+
+Rooms run on [Supabase](https://supabase.com). Without the two keys below, the game quietly uses **offline test rooms**, which work between tabs of the same browser.
+
+1. Create a Supabase project and turn on **Allow anonymous sign-ins** in its Authentication settings.
+2. In the **SQL Editor**, run the files in `supabase/migrations/` in order. For a project that already has the first one, `supabase/apply_to_live.sql` brings it up to date and is safe to run again.
+3. Create `client/.env.local` (it's gitignored):
+
+   ```
+   VITE_SUPABASE_URL=https://<your-project>.supabase.co
+   VITE_SUPABASE_ANON_KEY=sb_publishable_...
+   ```
+
+   Use the **publishable (anon)** key, never the secret one. The game refuses to start with a secret key.
+
+### Deploying
+
+Any static host works. On Vercel, set the **root directory** to `client`, add the two `VITE_SUPABASE_*` variables, and set `VITE_PUBLIC_URL` to the site's address so room QR codes point at it.
+
+### Scripts (in `client/`)
+
+| Command | Does |
+|---|---|
+| `npm run dev` | Dev server with hot reload |
+| `npm test` | 150+ unit tests (Vitest) |
+| `npm run typecheck` | TypeScript check |
+| `npm run build` | Typecheck, then a production build in `client/dist` |
+| `npm run character` | Bill's character preview page |
+
+The database's security rules have their own suite: `supabase/tests/rls_test.sh` (60 checks; see the file for setup).
+
+### Handy URLs
+
+| Add to the URL | Effect |
+|---|---|
+| `?room=QUAK` | Join screen for room QUAK (what the QR codes open) |
+| `?local` | Force offline test rooms, even with Supabase keys |
+| `?touch` | Show the phone controls on a laptop |
+| `?short` | Every stage at a fifth of its length, for quick testing |
+| `?phase=boss` | Jump straight to a stage (`runner1`, `swim`, `runner2`, `boss`…) |
+| `?quality=low` | Pin the graphics quality (`high`, `medium`, `low`); otherwise it adapts to the device |
+
+## How it's built
+
+- **TypeScript + [Three.js](https://threejs.org)**: one game loop and one renderer with bloom, soft shadows and tone mapping. Every model and texture is made in code: no downloaded assets.
+- **A state machine** runs the stages (Stage 1 → dive → underwater → surface → Stage 2 → boss), and **one input router** is the only thing that reads the keyboard or the screen halves. That's how the two-button rule is enforced in one place.
+- **Seeded courses:** a room's seed builds the same logs, coins and creatures for everyone, and every course is checked to always have a way through.
+- **[Supabase](https://supabase.com)** for rooms: anonymous sign-in, Postgres with row-level security (players can only write their own runs), Realtime for live updates, and a server clock so everyone starts on the same beat.
+- **Phones:** two-half touch controls, zoom locked, and graphics quality that adapts to keep the frame rate up.
+- **Sound** is synthesised live with the Web Audio API: music, effects, and a tick for every countdown.
+- **Tested:** 150+ unit tests across game rules, input, courses, rooms, ranking and the big screen, plus 60 database security checks.
+
+```
+client/src/
+  core/      game loop, state machine, input, run state and scoring
+  phases/    each stage: runner, transitions, underwater, boss
+  render/    Bill, the forest road, pond, sky, effects, render pipeline
+  course/    seeded course generator
+  sim/       boss rules (pure logic)
+  network/   rooms: offline test rooms and Supabase, ranking, live scoreboard
+  ui/        lobby and pond, big screen, HUD, results, story, phone controls
+  audio/     synthesised music and sound
+supabase/    database migrations, the live update script, security tests
+docs/        design docs (start with DESIGN_CHANGES.md)
+```
+
+## Team 46 (aka Team Monster)
+
+| | |
+|---|---|
+| **Tejas Kaushik** | Integration, 3D rendering (Bill, the stages, the Don), lobby and pond, multiplayer races, big-screen mode, phone controls |
+| **Mayank Mishra** | Supabase backend: schema, security rules and tests, rooms, ranking and the live scoreboard |
+| **Mohammad Rayyan Adhoni** | Seeded course generator and room integration |
+| **Zubair Mohammed** | Boss rules and reaction timing, stage instruction cards |
+| **Vansh Ravibhai Thacker** | Sound and music, the story intro and ending films, render quality on slower devices, tests |
+
+---
+
+<details>
+<summary><b>For the team: docs and branches</b></summary>
+
+- [Design changes](docs/DESIGN_CHANGES.md): the current rules and everything decided since the brief. Read this first.
+- [Game brief](docs/GAME_BRIEF.md), [additional info](ADDITIONAL_INFO.md), [team split](docs/TEAM_SPLIT.md), [backend notes](docs/MAYANK_BACKEND.md), [Bill the duck](docs/character/CHARACTER.md).
+
+Branches: `main` (default), `dev` (merge here only when your branch is complete; run `npm run build` first), `dev-test` (kept in sync with `dev`), and one branch each: `tejas-br`, `rayyan-br`, `mayank-br`, `zubair-br`, `vansh-br`.
+
+Any new file in `supabase/migrations/` must also be run on the live Supabase project; adding it to the repo isn't enough.
+
+</details>
