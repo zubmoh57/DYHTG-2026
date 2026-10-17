@@ -8,6 +8,7 @@
 //   /?seed=42           solo practice on a specific course (rooms supply their own seed)
 
 import './ui/ui.css';
+import { mountAudio } from './audio';
 import { Game } from './core/Game';
 import { createLocalRooms } from './network/localRooms';
 import type { RoomApi } from './network/types';
@@ -32,6 +33,7 @@ const game = new Game({
 const ui = document.getElementById('ui')!;
 mountHud(ui, game);
 mountCountdown(ui, game);
+mountAudio(ui, game);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).
 mountResults(ui, game, () => game.startAttempt());
 
