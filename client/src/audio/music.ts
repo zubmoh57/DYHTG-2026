@@ -1,5 +1,5 @@
-// Looping background music, sequenced on the Web Audio clock (Vansh). One funk track per stage group,
-// plus a laid-back groove for the lobby.
+// Looping background music, sequenced on the Web Audio clock (Vansh). A tense track per stage group,
+// plus a laid-back funk groove for the lobby.
 
 import type { MusicMood, MusicTrack } from './soundMap';
 import { midiToFreq, type Synth } from './synth';
@@ -40,10 +40,11 @@ const _ = null;
 // Chord voicings (MIDI), named for readability in the patterns below.
 const Em9 = [62, 66, 67, 71];
 const A13 = [61, 66, 67, 69];
-const G9 = [59, 62, 65, 69];
-const C9 = [58, 62, 64, 67];
-const Am9 = [60, 64, 67, 71];
-const D9 = [60, 64, 66, 69];
+const Cm = [60, 63, 67];
+const Ab = [60, 63, 68];
+const Gm = [58, 62, 67];
+const DmPad = [62, 65, 69];
+const CsDim = [61, 64, 67];
 const Dm9 = [60, 64, 65, 69];
 const Bb9 = [60, 62, 65, 68];
 const A7s9 = [61, 67, 72];
@@ -79,61 +80,68 @@ export const TRACKS: Record<MusicTrack, Track> = {
     },
     cutoff: 5000,
   },
-  // Runner: disco-funk, four on the floor with octave-popping bass and clav chops.
+  // Runner: a fast, driving C minor chase. The dog is behind you and the track never lets up.
   runner: {
-    bpm: 124,
-    swing: 0.12,
+    bpm: 150,
+    swing: 0.03,
     bass: [
-      43, 55, _, 43, _, 55, 43, _, 46, _, 58, _, 48, _, 50, 53,
-      41, 53, _, 41, _, 53, 41, _, 43, _, 55, _, 46, _, 48, 50,
+      36, 36, 48, 36, 36, 48, 36, 36, 39, 39, 51, 39, 41, 41, 43, _,
+      36, 36, 48, 36, 36, 48, 36, 36, 44, 44, 56, 44, 43, 43, 42, _,
     ],
-    bassCutoff: 1200,
+    bassCutoff: 1400,
     lead: [
-      _, _, 74, _, 77, _, 74, 72, _, 70, _, 67, _, _, _, _,
-      _, _, 74, _, 77, _, 79, _, 77, _, 74, 72, 70, _, 72, _,
+      72, _, 75, _, 77, _, 78, 77, 75, _, 72, _, 70, _, 72, _,
+      72, _, 75, _, 77, _, 79, _, 80, _, 79, _, 78, _, 77, _,
     ],
     leadType: 'square',
     chords: [
-      _, _, _, G9, _, _, G9, _, _, _, _, G9, _, _, G9, _,
-      _, _, _, C9, _, _, C9, _, _, _, _, C9, _, _, C9, _,
+      _, _, Cm, _, _, _, Cm, _, _, _, Cm, _, _, _, Cm, _,
+      _, _, Ab, _, _, _, Ab, _, _, _, Gm, _, _, _, Gm, _,
     ],
-    chordLen: 0.6,
+    chordLen: 0.5,
     drums: {
       kick: 'x---x---x---x---',
       snare: '----x-------x---',
-      ghost: '-------x------x-',
-      hat: 'xx-xxx-xxx-xxx-x',
+      hat: 'xxxxxxxxxxxxxxxx',
       openHat: '--x---x---x---x-',
+    },
+    // Second half: extra kicks and a snare roll into every bar.
+    tense: {
+      kick: '--x-------x--x--',
+      snare: '------------xxxx',
+      ghost: 'x-x-x-x-x-x-x-x-',
     },
     cutoff: 7000,
   },
-  // Underwater: a slow, swung A dorian jam with soft electric-piano pads behind the porthole.
+  // Underwater: a ticking-clock D minor pulse under sonar pings. Muffled, tight, holding your breath.
   underwater: {
-    bpm: 88,
-    swing: 0.25,
+    bpm: 116,
+    swing: 0,
     bass: [
-      45, _, _, 45, _, _, 57, _, _, 45, _, 48, _, 50, _, 52,
-      50, _, _, 50, _, _, 62, _, _, 50, _, 53, _, 54, _, 57,
+      38, _, 38, _, 38, _, 38, _, 39, _, 39, _, 38, _, 41, _,
+      38, _, 38, _, 38, _, 38, _, 36, _, 36, _, 37, _, 37, _,
     ],
-    bassCutoff: 600,
+    bassCutoff: 500,
     lead: [
-      _, _, _, _, _, _, _, _, _, _, _, _, 76, _, 79, _,
-      81, _, _, _, 79, _, 76, _, _, _, _, _, _, _, _, _,
-      _, _, _, _, _, _, _, _, _, _, _, _, 72, _, 74, _,
-      76, _, _, _, 74, _, 72, _, 69, _, _, _, _, _, _, _,
+      86, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+      86, _, _, _, _, _, _, _, 85, _, _, _, _, _, _, _,
     ],
     leadType: 'sine',
     chords: [
-      Am9, _, _, _, _, _, _, _, _, _, Am9, _, _, _, _, _,
-      D9, _, _, _, _, _, _, _, _, _, D9, _, _, _, _, _,
+      DmPad, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+      CsDim, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
     ],
-    chordLen: 5,
+    chordLen: 14,
     drums: {
-      kick: 'x-------x-x-----',
+      kick: 'x-------x-------',
       ghost: '----x-------x---',
-      hat: '--x---x---x---x-',
+      hat: 'x-x-x-x-x-x-x-x-',
     },
-    cutoff: 1500,
+    tense: {
+      kick: 'x---x---x---x---',
+      hat: '-x-x-x-x-x-x-x-x',
+    },
+    cutoff: 1800,
   },
   // Boss: fast, tense D minor funk: slap bass, sharp-nine stabs, busy hats for Don Crumb.
   boss: {
