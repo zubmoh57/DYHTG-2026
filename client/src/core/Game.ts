@@ -395,6 +395,10 @@ export class Game {
   private resetCamera(): void {
     this.defaultCamera.position.set(0, 3.4, 6.5);
     this.defaultCamera.lookAt(0, 1, -8);
+    if (this.defaultCamera.fov !== 60) {
+      this.defaultCamera.fov = 60;
+      this.defaultCamera.updateProjectionMatrix();
+    }
   }
 
   /** Bill faces -Z (away from the camera) at the origin, visible and idle. */
@@ -402,6 +406,7 @@ export class Game {
     const o = this.bill.object;
     o.position.set(0, 0, 0);
     o.rotation.set(0, Math.PI, 0);
+    o.scale.set(1, 1, 1);
     o.visible = true;
     this.bill.setGhost(false);
     this.bill.setPose('idle');
