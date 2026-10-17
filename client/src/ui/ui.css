@@ -1,0 +1,449 @@
+/* Shared overlay styles. Colours live here as variables so Vansh can restyle everything in one place. */
+:root {
+  --ink: #1d2433;
+  --paper: #fffaf0;
+  --accent: #f39c32; /* Bill's beak */
+  --good: #37d67a;
+  --bad: #e5484d;
+  --panel: rgba(255, 250, 240, 0.92);
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  font-family: 'Trebuchet MS', Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #9fd8ff;
+  color: var(--ink);
+}
+
+#game canvas {
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#ui .panel,
+#ui button,
+#ui input {
+  pointer-events: auto;
+}
+
+.panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 300px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.panel h1 {
+  margin: 0 0 4px;
+  font-size: 40px;
+}
+
+.panel p {
+  margin: 6px 0 14px;
+}
+
+.panel input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 14px;
+  padding: 10px 12px;
+  border: 2px solid #c9c2b0;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.panel button {
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.panel .muted {
+  color: #6b6455;
+  font-size: 13px;
+}
+
+.panel button {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.panel button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.panel button.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid #c9c2b0;
+}
+
+.panel button.small {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.panel .row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.panel .row input {
+  flex: 1;
+  margin: 8px 0;
+}
+
+.panel .row button {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.panel .code-input {
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.panel .room-code {
+  font-size: 56px;
+  font-weight: bold;
+  letter-spacing: 12px;
+  color: var(--accent);
+}
+
+.panel .players {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.panel .players li {
+  padding: 6px 10px;
+  border-bottom: 1px solid #e6dfcf;
+}
+
+.panel .error {
+  color: var(--bad);
+  min-height: 1em;
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.panel .error:empty {
+  display: none;
+}
+
+.panel .note {
+  color: #6b6455;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.countdown {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  font-size: 140px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 6px 0 var(--accent), 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hud .stage {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.hud .boss {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  width: min(420px, 70vw);
+  transform: translateX(-50%);
+}
+
+.hud .boss-bar {
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.hud .boss-fill {
+  height: 100%;
+  background: var(--bad);
+  transition: width 0.2s;
+}
+
+/* Transition fades (to/from the sea, the surface flash) */
+.fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Full-screen flash on a hit (red edges) or the heart (pink). Restarted by toggling the class. */
+.screen-flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.screen-flash.hit {
+  background: radial-gradient(ellipse at center, rgba(229, 72, 77, 0) 45%, rgba(229, 72, 77, 0.6) 100%);
+  animation: screen-flash 0.4s ease-out;
+}
+
+.screen-flash.heal {
+  background: radial-gradient(ellipse at center, rgba(255, 79, 139, 0) 40%, rgba(255, 79, 139, 0.45) 100%);
+  animation: screen-flash 0.6s ease-out;
+}
+
+@keyframes screen-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-flash.hit,
+  .screen-flash.heal {
+    animation-duration: 0.25s;
+    filter: opacity(0.5);
+  }
+}
+
+/* Boss reload prompt: Ready → Aim → FIRE! (green) */
+.reaction {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%);
+  padding: 10px 28px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 56px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.reaction.fire {
+  background: var(--good);
+  font-size: 84px;
+}
+
+.reaction.good,
+.reaction.bad {
+  font-size: 34px;
+}
+
+.reaction.good {
+  background: rgba(255, 62, 165, 0.75);
+}
+
+.reaction.bad {
+  background: rgba(229, 72, 77, 0.8);
+}
+
+.hud .boss-name {
+  margin-bottom: 4px;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.hud .boss-name span {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.hud .oxygen.low {
+  animation: oxygen-low 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes oxygen-low {
+  to {
+    opacity: 0.35;
+  }
+}
+
+.keys {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.keys:empty {
+  display: none;
+}
+
+/* Big call-outs during a run (power-ups, the dog) */
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 64%; /* below the action, so it never covers Bill or the boss's face */
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-radius: 14px;
+  background: rgba(20, 28, 40, 0.72);
+  color: #fff;
+  font-size: 30px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast.good {
+  background: rgba(30, 150, 90, 0.85);
+}
+
+.toast.bad {
+  background: rgba(200, 60, 60, 0.85);
+}
+
+.toast.leaving {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+  }
+}
+
+/* Speed lines while boosted */
+.speed-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 255, 255, 0.16) 0deg 1.2deg, transparent 1.2deg 9deg);
+  mask-image: radial-gradient(circle at 50% 45%, transparent 30%, black 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, transparent 30%, black 75%);
+  animation: speed-lines 0.25s linear infinite;
+}
+
+@keyframes speed-lines {
+  to {
+    transform: rotate(3deg) scale(1.03);
+  }
+}
+
+/* Swim: coins and the power-up track (20 shield, 50 boost, 100 laser) */
+.hud .coins {
+  font-size: 22px;
+}
+
+.hud .power {
+  font-size: 14px;
+  color: #ffe680;
+}
+
+.coin-track {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: min(360px, 60vw);
+  transform: translateX(-50%);
+  padding-top: 26px;
+}
+
+.coin-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.coin-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #ffd23f, #ffb000);
+  box-shadow: 0 0 10px rgba(255, 200, 60, 0.8);
+  transition: width 0.15s;
+}
+
+.coin-mark {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  line-height: 1;
+  opacity: 0.55;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.coin-mark span {
+  display: block;
+  font-size: 18px;
+}
+
+.coin-mark small {
+  font-size: 10px;
+}
+
+.coin-mark.reached {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.25);
+}

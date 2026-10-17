@@ -10,6 +10,11 @@ export type CharacterPose =
 
 export interface CharacterView {
   object: THREE.Object3D;
+  /**
+   * Bill's head, for attaching face props that must follow it exactly (the dollar-sign eyes, the
+   * greedy tongue). Head space: eyes at (±0.065, 0.03, 0.145), bill tip near (0, -0.04, 0.32).
+   */
+  head: THREE.Object3D;
   setPose(pose: CharacterPose): void;
   setGhost(isGhost: boolean): void;   // translucent version for the ghost
   update(dtSeconds: number): void;    // animation only
@@ -502,5 +507,5 @@ export function createCharacter(options: CharacterOptions = {}): CharacterView {
 
   applyRig();
 
-  return { object: root, setPose, setGhost, update };
+  return { object: root, head, setPose, setGhost, update };
 }
