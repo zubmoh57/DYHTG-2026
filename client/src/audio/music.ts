@@ -321,11 +321,10 @@ export class Music {
     if (chord) {
       const long = def.chordLen > 1;
       for (const note of chord) {
-        for (const detune of [-7, 7]) {
-          s.tone({ freq: midiToFreq(note), type: long ? 'triangle' : 'square', at, detune,
-            dur: stepSec * def.chordLen, gain: long ? 0.035 : 0.025, attack: long ? 0.04 : 0.003,
-            filter: { type: 'lowpass', freq: long ? 1800 : 2600, q: long ? 1 : 5 }, dest });
-        }
+        // One voice per note (not a detuned pair): half the audio nodes, barely audible difference.
+        s.tone({ freq: midiToFreq(note), type: long ? 'triangle' : 'square', at, detune: 5,
+          dur: stepSec * def.chordLen, gain: long ? 0.05 : 0.035, attack: long ? 0.04 : 0.003,
+          filter: { type: 'lowpass', freq: long ? 1800 : 2600, q: long ? 1 : 5 }, dest });
       }
     }
 
