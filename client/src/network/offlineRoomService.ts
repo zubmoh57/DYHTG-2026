@@ -1,5 +1,6 @@
 // offline mode game room service
-import type { AttemptProgress, AttemptResult, RoomInfo, RoomPlayer } from './types'
+import type { AttemptProgress, AttemptResult, RoomInfo, RoomPlayer, RunUpdate } from './types'
+import type { ScoreboardEntry } from './ranking';
 import { createLocalRooms, type LocalRoomApi, type RoomStore } from './localRooms';
 import type {RoomService} from './roomService';
 
@@ -37,6 +38,18 @@ export class OfflineRoomService implements RoomService {
 
   startRoom(): Promise<void> {
     return this.rooms.startRoom();
+  }
+
+  reopenRoom(): Promise<void> {
+    return this.rooms.reopenRoom();
+  }
+
+  publishRun(update: RunUpdate): void {
+    this.rooms.publishRun(update);
+  }
+
+  onStandings(listener: (rows: ScoreboardEntry[]) => void): () => void {
+    return this.rooms.onStandings(listener);
   }
 
   async leaveRoom(): Promise<void> {

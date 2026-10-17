@@ -4,15 +4,23 @@
 
 import { CONFIG } from '../core/config';
 import { newRoomSeed } from '../core/seededRandom';
-import type { RoomApi, RoomInfo, RoomPlayer } from './types';
+import { rankStandings, type ScoreboardEntry } from './ranking';
+import type { RoomApi, RoomInfo, RoomPlayer, RunUpdate } from './types';
 
 export interface StoredRoom {
   code: string;
   seed: number;
   hostId: string;
   players: { id: string; nickname: string }[];
-  /** Date.now() time the shared countdown ends, once the host has started. */
+  /** Date.now() time the shared countdown ends, once the host has started. Back to null when the host reopens the room. */
   startAt: number | null;
+  /** The latest race's runs, by player id. Cleared when the next race starts. */
+  runs?: Record<string, StoredRun>;
+}
+
+export interface StoredRun extends RunUpdate {
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** Where rooms are kept. Swappable so tests can run without a browser. */
@@ -95,6 +103,27 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
   let lastStartAt: number | null = null;
   const playerListeners = new Set<(players: RoomPlayer[]) => void>();
   const startListeners = new Set<(startAt: number) => void>();
+  const standingListeners = new Set<(rows: ScoreboardEntry[]) => void>();
+
+  const standings = (room: StoredRoom | null): ScoreboardEntry[] => {
+    if (!room) return [];
+    const now = Date.now();
+    return rankStandings(
+      room.players.map((p) => ({ userId: p.id, nickname: p.nickname, lastSeenMs: now })),
+      Object.entries(room.runs ?? {}).map(([userId, r]) => ({
+        userId,
+        status: r.status,
+        phase: r.phase,
+        phaseProgress: r.phaseProgress,
+        elapsedMs: r.elapsedMs,
+        score: r.score,
+        bossHealth: r.bossHealth,
+        createdMs: r.createdAt,
+        updatedMs: now, // test rooms have no presence: nobody shows as disconnected
+      })),
+      now,
+    );
+  };
 
   const players = (room: StoredRoom | null): RoomPlayer[] =>
     room ? room.players.map((p) => ({ id: p.id, nickname: p.nickname, isHost: p.id === room.hostId })) : [];
@@ -105,6 +134,10 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
     const room = store.read(info.code);
     const list = players(room);
     playerListeners.forEach((l) => l(list));
+    if (standingListeners.size) {
+      const rows = standings(room);
+      standingListeners.forEach((l) => l(rows));
+    }
     if (room?.startAt && room.startAt !== lastStartAt) {
       lastStartAt = room.startAt;
       startListeners.forEach((l) => l(room.startAt!));
@@ -169,7 +202,34 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
       if (!info?.isHost) throw new Error('Only the host can start.');
       update((room) => {
         room.startAt = Date.now() + CONFIG.flow.countdownSec * 1000;
+        room.runs = {};
       });
+    },
+
+    async reopenRoom() {
+      if (!info?.isHost) return;
+      update((room) => {
+        room.startAt = null;
+      });
+    },
+
+    publishRun(run) {
+      if (!info) return;
+      const room = store.read(info.code);
+      if (!room) return;
+      const runs = (room.runs ??= {});
+      const previous = runs[info.playerId];
+      if (previous && previous.attemptId === run.attemptId && previous.status !== 'running') return; // already final
+      const now = Date.now();
+      runs[info.playerId] = { ...run, createdAt: previous?.attemptId === run.attemptId ? previous.createdAt : now, updatedAt: now };
+      store.write(room);
+      refresh();
+    },
+
+    onStandings(listener) {
+      standingListeners.add(listener);
+      listener(info ? standings(store.read(info.code)) : []);
+      return () => standingListeners.delete(listener);
     },
 
     onStart(listener) {
@@ -181,6 +241,7 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
       unsubscribeStore();
       playerListeners.clear();
       startListeners.clear();
+      standingListeners.clear();
       await api.leaveRoom();
     },
 

@@ -1,4 +1,5 @@
 import type { PhaseId } from '../core/types';
+import type { ScoreboardEntry } from './ranking';
 
 // the final status of a game attempt
 export type AttemptResultStatus = 'finished' | 'failed';
@@ -55,4 +56,30 @@ export interface RoomApi {
   /** Fires when the host starts. `startAtEpochMs` is when everyone's countdown ends (Date.now() time). */
   onStart(listener: (startAtEpochMs: number) => void): () => void;
   leaveRoom(): Promise<void>;
+
+  // --- Races (Tejas, multiplayer): one race at a time per room, then everyone's back in the lobby ---
+
+  /** This player's run in the current race. Fire and forget; the caller sends it a couple of times a second. */
+  publishRun(update: RunUpdate): void;
+  /**
+   * The room's leaderboard for the latest race (everyone in the room, highest score first; all 0 before
+   * the first race). Called at once with what's known, then on every change. Returns an unsubscribe function.
+   */
+  onStandings(listener: (rows: ScoreboardEntry[]) => void): () => void;
+  /** Host only: the race is over for them; open the room again so new players can join before the next one. */
+  reopenRoom(): Promise<void>;
+}
+
+/** One player's run, as the leaderboard needs it. */
+export interface RunUpdate {
+  attemptId: string;
+  status: 'running' | 'finished' | 'failed';
+  phase: PhaseId;
+  /** 0..1 through the current section. */
+  phaseProgress: number;
+  lives: number;
+  /** The race score (RunState.raceScore). */
+  score: number;
+  bossHealth: number;
+  elapsedMs: number;
 }

@@ -5,7 +5,7 @@
 // Realtime missed and refreshes last_seen_at, which drives the "disconnected" marker.
 
 import type { PhaseId } from '../core/types';
-import { rankScoreboard, type ScoreboardAttempt, type ScoreboardEntry, type ScoreboardPlayer } from './ranking';
+import { rankStandings, type ScoreboardAttempt, type ScoreboardEntry, type ScoreboardPlayer } from './ranking';
 import { parseTimestamp, type OnlineRoomApi } from './supabaseRooms';
 
 const PLAYERS_EVERY_MS = 5000;
@@ -14,6 +14,8 @@ const ATTEMPTS_EVERY_MS = 15000;
 const TICK_MS = 1000;
 /** Newest attempts read per refresh. Realtime fills in anything newer. */
 const ATTEMPT_LIMIT = 500;
+/** Attempts are created when the run starts, after the shared start; this much slack covers clock jitter. */
+const RACE_SLACK_MS = 10000;
 
 const ATTEMPT_COLUMNS =
   'id, user_id, status, phase, phase_progress, elapsed_ms, score, boss_health, created_at, updated_at';
@@ -60,7 +62,10 @@ export function watchScoreboard(rooms: OnlineRoomApi, listener: (entries: Scoreb
 
   const emit = () => {
     if (!loaded || stopped) return;
-    const entries = rankScoreboard(players, [...attempts.values()], clock.serverNow());
+    // Only the latest race counts (Tejas): attempts created since it started. None before the first race.
+    const since = rooms.raceStartServerMs();
+    const race = since === null ? [] : [...attempts.values()].filter((a) => a.createdMs >= since - RACE_SLACK_MS);
+    const entries = rankStandings(players, race, clock.serverNow());
     const key = JSON.stringify(entries);
     if (key === lastKey) return;
     lastKey = key;
