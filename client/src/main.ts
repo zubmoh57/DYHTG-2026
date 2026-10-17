@@ -9,19 +9,25 @@
 
 import './ui/ui.css';
 import { Game } from './core/Game';
-import { createLocalRooms } from './network/localRooms';
+import { OfflineRoomService } from './network/offlineRoomService';
+import { isSupabaseConfigured } from './network/supabase';
+import { watchScoreboard } from './network/supabaseScoreboard';
+import { createSupabaseRooms } from './network/supabaseRooms';
 import type { RoomApi } from './network/types';
 import { DEV_JUMPS, PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
 import { mountHud } from './ui/hud';
 import { mountLobby } from './ui/lobby';
 import { mountResults } from './ui/results';
+import { mountScoreboard } from './ui/scoreboard';
 
 const params = new URLSearchParams(window.location.search);
 const soloSeed = Number(params.get('seed')) || 20261017;
 
-// Swap this one line for the Supabase RoomApi when Mayank + Rayyan's backend is ready.
-const rooms: RoomApi = createLocalRooms();
+// Online rooms when client/.env.local has the Supabase keys; offline rooms without them, or with ?local.
+const online = isSupabaseConfigured() && !params.has('local') ? createSupabaseRooms() : null;
+const rooms: RoomApi = online ?? new OfflineRoomService();
+let stopScoreboard: (() => void) | null = null;
 
 const game = new Game({
   container: document.getElementById('game')!,
@@ -48,6 +54,16 @@ const lobby = mountLobby(ui, {
     game.setIdentity({ roomId: room.code, playerId: room.playerId, seed: room.seed });
     // Convert the shared wall-clock start time into this tab's performance.now() clock.
     game.startAttempt({ countdownEndsAt: performance.now() + (startAtEpochMs - Date.now()) });
+
+    if (online) {
+      stopScoreboard?.();
+      const board = mountScoreboard(ui, room.playerId);
+      const stop = watchScoreboard(online, board.update);
+      stopScoreboard = () => {
+        stop();
+        board.destroy();
+      };
+    }
   },
 });
 

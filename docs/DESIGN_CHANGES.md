@@ -15,7 +15,7 @@ Everything not listed here is unchanged.
 ## Swim, coins and power-ups
 
 - **The timing ring and oxygen are dropped.** Space can't be live while A/D steer (two-button rule), so the swim is A/D only.
-  Zubair's `sim/underwater.ts` and `sim/timing-ring.ts` are no longer used by the game. `sim/boss.ts` still is.
+  Zubair's old `sim/underwater.ts` and `sim/timing-ring.ts` were removed after being superseded by `phases/underwater/SwimPhase.ts`. `sim/boss.ts` still supplies the boss rules.
 - **A hit underwater costs 5 coins and slows Bill**, never a life, so lives still pass through the swim unchanged.
 - Coins buy **the best power-up you can afford, automatically** (no menu):
 
