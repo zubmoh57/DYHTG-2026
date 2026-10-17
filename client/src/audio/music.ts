@@ -281,7 +281,7 @@ export class Music {
     const drone = def.drone?.[i % def.drone.length];
     if (drone != null) {
       for (const detune of [-12, 12]) {
-        s.tone({ freq: midiToFreq(drone), type: 'sawtooth', at, detune, dur: stepSec * 16, gain: 0.12, attack: 0.4,
+        s.tone({ freq: midiToFreq(drone), type: 'sawtooth', at, detune, dur: stepSec * 16, gain: 0.09, attack: 0.4,
           filter: { type: 'lowpass', freq: 380, q: 2 }, dest });
       }
     }
@@ -308,8 +308,8 @@ export class Music {
     if (def.tense && (this.mood.tension >= 0.5 || this.mood.danger)) this.playDrums(def.tense, dest, i, at);
     // Last life: a heartbeat on every beat, lub-dub.
     if (this.mood.danger && i % 4 === 0) {
-      s.tone({ freq: 70, to: 40, at, dur: 0.12, gain: 0.55, dest });
-      s.tone({ freq: 60, to: 35, at: at + 0.14, dur: 0.1, gain: 0.4, dest });
+      s.tone({ freq: 70, to: 40, at, dur: 0.12, gain: 0.4, dest });
+      s.tone({ freq: 60, to: 35, at: at + 0.14, dur: 0.1, gain: 0.3, dest });
     }
   }
 

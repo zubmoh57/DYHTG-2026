@@ -36,8 +36,11 @@ export class Synth {
     this.master.gain.value = 0.8;
     // A gentle limiter so stacked sounds (shotgun + hurt + music) never clip.
     const limiter = this.ctx.createDynamicsCompressor();
-    limiter.threshold.value = -10;
-    limiter.ratio.value = 8;
+    limiter.threshold.value = -8;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.15;
     this.master.connect(limiter).connect(this.ctx.destination);
     this.sfx = this.ctx.createGain();
     this.sfx.connect(this.master);
