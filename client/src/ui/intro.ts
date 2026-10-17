@@ -1,5 +1,6 @@
-// The story intro (Vansh): comic-book panels that play when you press Solo practice, like the opening
-// of a Mario game. SPACE or a click moves on (finishing the line first), "Skip" ends it at once.
+// The story intro (Vansh): comic-book panels that play before every first run, like the opening of a
+// Mario game. Solo: SPACE or a click moves on (finishing the line first), "Skip" ends it at once.
+// Rooms: it plays on a fixed timeline instead, so everyone reaches the start line together.
 // It only uses SPACE and clicks, so the game's two-control rule holds.
 
 import type { AudioHandle } from '../audio';
@@ -78,8 +79,25 @@ const CHARS_PER_SEC = 38;
 /** How long a finished panel stays up before moving on by itself. */
 const HOLD_SEC = 2.4;
 
-/** Show the intro over `root`, then call onDone (after the last panel or a skip). */
-export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void): void {
+const panelChars = (panel: Panel) =>
+  panel.lines.reduce((n, l) => n + (l.who ? l.who.length + 2 : 0) + l.text.length, 0);
+
+/** Seconds each panel lasts when nobody presses anything. */
+export const PANEL_SEC = PANELS.map((p) => panelChars(p) / CHARS_PER_SEC + HOLD_SEC);
+/** The whole intro, untouched. Rooms add this to the shared start so everyone watches it in sync. */
+export const INTRO_SEC = PANEL_SEC.reduce((a, b) => a + b, 0);
+
+export interface IntroOptions {
+  /** performance.now() time to end exactly on. The intro then plays on a timeline and can't be skipped. */
+  endsAt?: number;
+}
+
+/** Show the intro over `root`, then call onDone (after the last panel, a skip, or at endsAt). */
+export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): void {
+  const timed = options.endsAt !== undefined;
+  const startedAt = performance.now();
+  // Stretch or squeeze every panel evenly so the last one ends right on endsAt.
+  const stretch = timed ? Math.max(0.2, (options.endsAt! - startedAt) / 1000 / INTRO_SEC) : 1;
   const art = el('div', { className: 'intro-art' });
   const caption = el('div', { className: 'intro-caption' });
   const skip = el('button', { className: 'intro-skip', text: 'Skip ⏭' });
@@ -151,16 +169,31 @@ export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => v
   };
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.code !== 'Space' || e.repeat) return;
+    if (e.code !== 'Space') return;
     e.preventDefault();
-    e.stopPropagation(); // the game is still in the lobby; keep SPACE to ourselves
-    advance();
+    e.stopPropagation(); // the run hasn't started; keep SPACE to ourselves
+    if (!timed && !e.repeat) advance();
+  };
+
+  /** Timed mode: which panel the clock says we're on, and how far into it. */
+  const timedTick = (now: number) => {
+    if (now >= options.endsAt!) return finish();
+    let t = (now - startedAt) / 1000;
+    let i = 0;
+    while (i < PANELS.length - 1 && t >= PANEL_SEC[i] * stretch) t -= PANEL_SEC[i++] * stretch;
+    if (i !== index) show(i);
+    const want = Math.min(total, (t / stretch) * CHARS_PER_SEC);
+    if (want > typed) {
+      typed = want;
+      render();
+    }
   };
 
   const tick = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
-    if (typed < total) {
+    if (timed) timedTick(now);
+    else if (typed < total) {
       typed = Math.min(total, typed + dt * CHARS_PER_SEC);
       render();
     } else if ((holdT += dt) >= HOLD_SEC) {
@@ -170,10 +203,15 @@ export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => v
     if (!done) raf = requestAnimationFrame(tick);
   };
 
-  onButton(skip, finish);
-  overlay.addEventListener('click', (e) => {
-    if (e.target !== skip) advance();
-  });
+  if (timed) {
+    skip.remove();
+    hint.remove();
+  } else {
+    onButton(skip, finish);
+    overlay.addEventListener('click', (e) => {
+      if (e.target !== skip) advance();
+    });
+  }
   window.addEventListener('keydown', onKey, true);
 
   root.appendChild(overlay);
