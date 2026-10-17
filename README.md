@@ -1,4 +1,20 @@
-# DYHTG-2026 
+# Duck Run
+
+Funny, colourful 3D browser game for the JPMorgan hackathon.
+
+## Shared context
+
+Read these before implementing an assigned feature:
+
+- [Game brief](docs/GAME_BRIEF.md): confirmed mechanics, technical recommendations, and open decisions.
+- [Additional information](ADDITIONAL_INFO.md): boss, targeting, score, and completion clarifications.
+- [Team split](docs/TEAM_SPLIT.md): current ownership and integration boundaries.
+- [Bill the duck](docs/character/CHARACTER.md): existing character and preview reference.
+
+The updated Duck Run design supersedes the older Two Keys flight and boss-circle design. Follow the per-phase A/D/Space controls in the game brief.
+
+## Team and branches
+
 Team 46 [AKA team monster] 
 8 - branches
 

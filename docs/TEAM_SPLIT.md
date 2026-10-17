@@ -1,6 +1,8 @@
 # Duck Run: who builds what
 
-This goes with `PROJECT_BRIEF.md` (the original Dollar Duck brief) and `DUCK_RUN_ADDENDUM.md` (the newer rules, which win where they differ). Both replace the older `GAME_BRIEF.md` (Two Keys).
+Read `PROJECT_BRIEF.md` for the original full brief, `DUCK_RUN_ADDENDUM.md` for the latest clarifications, and `GAME_BRIEF.md` for the consolidated Duck Run design. Current confirmed rules override historical examples.
+
+**Latest Zubair handoff:** Zubair supplies the gameplay-only modules in `client/src/sim/`; Tejas owns frontend presentation and input wiring for this contribution. See [ZUBAIR_BASE.md](ZUBAIR_BASE.md). Preserve the existing core contracts below and add phase adapters; do not replace Tejas's controller or introduce a second animation loop. The older rendering tasks for Zubair below are superseded by this boundary. Early Ready/Aim presses and Space held when Fire appears each end the duck's attack for **1 damage**.
 
 ## 1. The team
 
@@ -94,9 +96,10 @@ export class TimingWindow {
 // phases/boss/ (Zubair): the reaction attack, per DUCK_RUN_ADDENDUM §1
 // Confirmed: Ready → Aim → Fire (green). Space only, the duck can't move. 100% accuracy.
 //   Damage comes from the reaction time after Fire appears: faster = more.
-//   Holding Space = Miss, 0 damage. One attack per reload window. Boss HP 30,000.
-// UNDECIDED (ask the team, don't pick silently): Space during Ready/Aim, Space held at reload
-//   entry, Ready/Aim/Fire durations, the damage formula + min/max, the no-press outcome,
+//   Early Ready/Aim press or Space held when Fire appears = 1 damage, ending the attack.
+//   One attack per reload window. Boss HP 30,000.
+// UNDECIDED (ask the team, don't pick silently): Ready/Aim/Fire durations,
+//   the damage formula + min/max, the no-press outcome,
 //   and exactly how bullets aim at the player.
 ```
 
@@ -145,7 +148,7 @@ export interface RoomApi {
 |---|---|---|
 | **0–2** | `accuracy.ts` + `TimingWindow.ts` (pure, no Three.js) with quick tests: live accuracy rises to 100 then falls, one attempt per window, early press uses it, perfect band. Agree `LaneMover` with Tejas | Ring logic works in tests |
 | **2–5** | `TimingRingView` (big closing ring + target + live %, frozen on press). **Underwater:** first-person cockpit from shapes, automatic travel, ~10 windows, **3 oxygen bubbles**, boosts (90–100% = 1.5×, 50–89% = 1.25×, 3 s, refresh not stack), under 50% or no press loses a bubble, 0 oxygen fails the run | Playable via `?phase=underwater` |
-| **5–9** | **Pigeon boss** (rules from `DUCK_RUN_ADDENDUM.md`): 3 single shots with wind-up that **aim at the player**, dodging with `LaneMover`, **all bullets cleared before the attack**, then the reload **Ready → Aim → Fire (green)** prompt, Space only. Damage from reaction time (faster = more), holding Space = Miss for 0, one attack per reload, HP 30,000, victory once. Pigeon with shotgun from shapes, laser, damage popup. **Before coding, get the team to decide the open questions** (addendum §1–2) | Playable via `?phase=boss`; fast reactions beat it |
+| **5–9** | **Pigeon boss** (rules from `DUCK_RUN_ADDENDUM.md`): 3 single shots with wind-up that **aim at the player**, dodging with `LaneMover`, **all bullets cleared before the attack**, then the reload **Ready → Aim → Fire (green)** prompt, Space only. Damage from reaction time (faster = more), early Ready/Aim presses or Space held when Fire appears = 1 damage, one attack per reload, HP 30,000, victory once. Pigeon with shotgun from shapes, laser, damage popup. **Before coding, get the team to decide the open questions** (addendum §1–2) | Playable via `?phase=boss`; fast reactions beat it |
 | **9–10** | **Simple transitions** (input mode `none`, under 4 s): sub entry (Bill drops into the hatch) and surface return (dollar hook pulls Bill up). Bill's existing poses are fine for now | Full run flows through both transitions |
 | **10–24** | Pigeon animations (aim, reload, flinch, defeat), cockpit polish, boss and window tuning toward a 3–4 min run | Underwater and boss checks in brief §16 pass |
 
@@ -155,7 +158,7 @@ export interface RoomApi {
 
 Do these in order, and don't take anything that blocks the core build:
 1. **Pull `dev`, play the whole game and write a bug list** for the owners.
-2. **Tests (he owns `client/tests/`):** turn the brief's §16 checklist into Vitest tests wherever it's pure logic: input modes per phase, 30% slow, invulnerability, lives across underwater, oxygen separate, heart once (3 → 4), underwater timing thresholds, held-key rules (underwater: held doesn't count; boss: held = Miss, 0 damage), boss reaction damage (faster = more, one attack per reload), score never above 300,000, retry resets everything, same seed = same course. Write a **manual checklist** for full runs and two-client play, and run it every few hours.
+2. **Tests (he owns `client/tests/`):** turn the brief's §16 checklist into Vitest tests wherever it's pure logic: input modes per phase, 30% slow, invulnerability, lives across underwater, oxygen separate, heart once (3 → 4), underwater timing thresholds, held-key rules (underwater: held doesn't count; boss: early press or held at Fire = 1 damage), boss reaction damage (faster = more, one attack per reload), score never above 300,000, retry resets everything, same seed = same course. Write a **manual checklist** for full runs and two-client play, and run it every few hours.
 3. **Sound (`audio/`):** quack, splash, branch hit, ring tick, perfect chime, oxygen pop, shotgun, reload click, "Ready… Aim… Fire!" call-outs, laser, boss defeat, music. Play sounds by listening to the `GameEvent`s, so nobody else has to call audio code.
 4. **Bill's new poses** in `render/character.ts` (check with Tejas first): run on water, dive into hatch, dollar eyes, hanging from hook, firing laser. Test them in `npm run character`.
 5. **Game feel:** screen shake, hit flash, damage-number styling, lobby/HUD/results styling.
