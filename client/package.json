@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
+    "qrcode-generator": "^1.4.4",
     "three": "0.169.0"
   },
   "devDependencies": {
