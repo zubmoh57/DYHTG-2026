@@ -14,6 +14,8 @@ export interface LobbyOptions {
   onRoomStart(room: RoomInfo, startAtEpochMs: number): void;
   /** Pre-filled join code, e.g. from a ?room=QUAK link. */
   initialCode?: string;
+  /** Extra controls under the home menu, e.g. the volume slider. */
+  footer?: HTMLElement;
 }
 
 export interface LobbyHandle {
@@ -116,6 +118,7 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
       solo,
       el('p', { className: 'muted', text: 'Lanes: A / D  ·  Timing: SPACE' }),
     ];
+    if (options.footer) children.push(options.footer);
     if (rooms.mode === 'local') {
       children.push(
         el('p', {

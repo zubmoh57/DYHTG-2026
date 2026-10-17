@@ -448,6 +448,272 @@ body {
   transform: translateX(-50%) scale(1.25);
 }
 
+.panel .volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.panel .volume input {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Story intro (Vansh): a fast comic before the run. Only transform and opacity animate, so it stays smooth. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #f6e7c1;
+  /* Halftone dots, like cheap comic paper. */
+  background-image: radial-gradient(rgba(214, 120, 40, 0.28) 1.6px, transparent 1.8px);
+  background-size: 12px 12px;
+  color: #111;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: intro-in 0.35s ease-out;
+}
+
+.intro.closing { animation: intro-out 0.45s ease-in forwards; }
+
+.comic-page {
+  position: relative;
+  width: min(900px, calc(100vw - 32px), calc((100vh - 90px) * 16 / 9));
+  aspect-ratio: 16 / 9;
+}
+
+.comic-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 6px solid #111;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 10px 10px 0 #111;
+  transform: rotate(var(--tilt, 0deg));
+  will-change: transform, opacity;
+  animation: panel-enter 0.5s cubic-bezier(0.18, 1.25, 0.4, 1) both;
+}
+
+.comic-panel.leave {
+  pointer-events: none;
+  animation: panel-leave 0.45s cubic-bezier(0.6, 0, 0.8, 0.4) both;
+}
+
+.comic-panel svg { display: block; width: 100%; height: 100%; }
+
+.comic-panel .caption,
+.comic-panel .bubble,
+.comic-panel .fx {
+  position: absolute;
+  will-change: transform, opacity;
+  animation: pop 0.32s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.comic-panel.all .caption,
+.comic-panel.all .bubble { animation-delay: 0s !important; }
+
+.comic-panel .caption {
+  max-width: 58%;
+  padding: 8px 12px;
+  border: 3px solid #111;
+  background: #ffe066;
+  box-shadow: 4px 4px 0 #111;
+  font: 800 clamp(13px, 2vw, 20px)/1.25 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+  text-transform: uppercase;
+}
+
+.comic-panel .caption.top { top: 12px; left: 12px; }
+.comic-panel .caption.bottom { bottom: 12px; right: 12px; }
+
+.comic-panel .caption.tagline {
+  left: 50%;
+  bottom: 14%;
+  max-width: 80%;
+  background: #fff;
+  white-space: nowrap;
+  translate: -50% 0;
+}
+
+.comic-panel .bubble {
+  max-width: 36%;
+  padding: 8px 14px 10px;
+  border: 3px solid #111;
+  border-radius: 22px;
+  background: #fff;
+  font: 900 clamp(14px, 2.3vw, 24px)/1.15 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+  translate: -50% 0;
+}
+
+.comic-panel .bubble .who {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.55em;
+  letter-spacing: 1px;
+  color: #c0392b;
+  text-transform: uppercase;
+}
+
+.comic-panel .bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -18px;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-top: 14px solid #111;
+}
+
+.comic-panel .bubble.tail-left::after { left: 22px; }
+.comic-panel .bubble.tail-right::after { right: 22px; }
+
+.comic-panel .fx {
+  font: 900 clamp(34px, 7vw, 76px)/1 'Arial Black', Impact, sans-serif;
+  color: #ffcf33;
+  -webkit-text-stroke: 3px #111;
+  text-shadow: 5px 5px 0 #111;
+  translate: -50% -50%;
+  rotate: -12deg;
+  animation: fx-pop 0.45s 0.1s cubic-bezier(0.2, 1.8, 0.4, 1) both, wobble 0.9s 0.6s ease-in-out infinite alternate;
+}
+
+.intro-skip {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 1;
+  padding: 6px 14px;
+  border: 3px solid #111;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 3px 3px 0 #111;
+  color: #111;
+  font: 800 13px/1 'Trebuchet MS', sans-serif;
+  cursor: pointer;
+}
+
+.intro-skip:hover { background: #ffe066; }
+
+.intro-hint {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font: 800 13px/1 'Trebuchet MS', sans-serif;
+  letter-spacing: 1px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.intro-hint.ready { opacity: 0.8; animation: blink 1s infinite; }
+
+.intro-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  gap: 8px;
+  translate: -50% 0;
+}
+
+.intro-dots span {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #111;
+  border-radius: 50%;
+  background: #fff;
+  transition: background 0.3s, transform 0.3s;
+}
+
+.intro-dots span.on { background: #f39c32; transform: scale(1.15); }
+
+.comic-panel.scene-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 45%, #c0392b, #3a0f12 75%);
+}
+
+.intro-title {
+  display: flex;
+  gap: 0.3em;
+  font: 900 clamp(36px, 8vw, 110px)/1 'Arial Black', Impact, sans-serif;
+  color: #ffcf33;
+  -webkit-text-stroke: 4px #111;
+  text-shadow: 7px 7px 0 #111;
+}
+
+.intro-title span { animation: title-slam 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.intro-title span:last-child { animation-delay: 0.2s; color: #fff; }
+
+/* Scene animations (class names come from ui/introArt.ts). */
+.intro .bob { animation: bob 1.2s ease-in-out infinite; }
+.intro .ripple { animation: drift 3s linear infinite; }
+.intro .fade-in { animation: fade 0.6s 0.4s both; }
+.intro .drop-in { animation: drop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.intro .stamp { animation: stamp 0.3s 0.6s cubic-bezier(0.3, 1.8, 0.5, 1) both; transform-box: fill-box; transform-origin: center; }
+.intro .lean-in { animation: lean 0.7s ease-out both; }
+.intro .shake { animation: shake 0.1s 6 0.1s; }
+.intro .sway { animation: sway 3s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; }
+.intro .glint { animation: glint 1.2s ease-in-out infinite; }
+.intro .air { animation: rise 2.8s linear infinite; }
+.intro .swim { animation: swim 3s ease-in-out both; }
+.intro .swing { animation: swing 1.6s ease-in-out infinite; transform-origin: 250px 0; }
+.intro .dash { animation: dash 0.25s ease-in-out infinite alternate; }
+.intro .chase { animation: chase 0.2s ease-in-out infinite alternate; }
+.intro .speed { animation: speed 0.35s linear infinite; }
+.intro .smoke { animation: smoke 2s ease-out infinite; }
+.intro .smoke.s2 { animation-delay: 1s; }
+.intro .ember { animation: blink 1.4s infinite; }
+.intro .sweat { animation: drip 0.7s ease-in infinite; }
+
+@keyframes intro-in { from { opacity: 0; } }
+@keyframes intro-out { to { opacity: 0; transform: scale(1.04); } }
+@keyframes panel-enter {
+  from { transform: translateX(70%) rotate(8deg) scale(0.85); opacity: 0; }
+  to { transform: rotate(var(--tilt, 0deg)); opacity: 1; }
+}
+@keyframes panel-leave {
+  from { transform: rotate(var(--tilt, 0deg)); opacity: 1; }
+  to { transform: translateX(-70%) rotate(-10deg) scale(0.85); opacity: 0; }
+}
+@keyframes pop { from { transform: scale(0.3); opacity: 0; } }
+@keyframes fx-pop { from { transform: scale(0.2); opacity: 0; } }
+@keyframes wobble { to { transform: scale(1.08); } }
+@keyframes title-slam { from { transform: scale(3); opacity: 0; } }
+@keyframes blink { 50% { opacity: 0.25; } }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+@keyframes drift { to { transform: translateX(-100px); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes drop { from { transform: translateY(-260px) rotate(-4deg); } }
+@keyframes stamp { from { transform: scale(3) rotate(-18deg); opacity: 0; } to { transform: rotate(-18deg); } }
+@keyframes lean { from { transform: translateX(40px); opacity: 0; } }
+@keyframes shake { 25% { transform: translate(-6px, 3px); } 75% { transform: translate(6px, -3px); } }
+@keyframes sway { 50% { transform: skewX(8deg); } }
+@keyframes glint { 50% { opacity: 0.55; } }
+@keyframes rise { to { transform: translateY(-210px); opacity: 0; } }
+@keyframes swim { from { transform: translate(-120px, 20px); } to { transform: translate(160px, 30px); } }
+@keyframes swing { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes dash { to { transform: translateY(-6px); } }
+@keyframes chase { to { transform: translate(8px, -3px); } }
+@keyframes speed { from { transform: translateX(40px); opacity: 0.8; } to { transform: translateX(-40px); opacity: 0; } }
+@keyframes smoke { from { transform: translate(0, 0) scale(0.6); opacity: 0.6; } to { transform: translate(-10px, -30px) scale(1.6); opacity: 0; } }
+@keyframes drip { to { transform: translateY(10px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro *, .intro { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
+}
+
 /* Boss intro: cinematic letterbox bars, the name card and the taunt */
 .letterbox::before,
 .letterbox::after {

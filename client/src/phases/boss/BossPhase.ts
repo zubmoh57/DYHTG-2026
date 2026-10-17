@@ -128,6 +128,7 @@ export function createBossPhase(): PhaseFactory {
     let resultT = -1; // seconds the last attack result has been on screen
     let wonT = -1;
     let drift = 0;
+    let lastPrompt: string | null = null; // so each prompt's cue fires once
 
     const say = (text: string, kind: '' | 'fire' | 'good' | 'bad' = '') => {
       prompt.textContent = text;
@@ -172,6 +173,7 @@ export function createBossPhase(): PhaseFactory {
     const startVolley = () => {
       volleyT = 0;
       resultT = -1;
+      lastPrompt = null;
       prompt.remove();
       ctx.requestInputMode('lanes');
       ctx.bill.setPose('run');
@@ -392,6 +394,8 @@ export function createBossPhase(): PhaseFactory {
           if (result) showResult(result);
           else {
             const p = getBossPrompt(sim);
+            if (p && p !== lastPrompt) ctx.emit({ type: 'cue', name: p }); // 'ready' | 'aim' | 'fire', for sound
+            lastPrompt = p;
             if (p === 'ready') say('Ready');
             else if (p === 'aim') say('Aim');
             else if (p === 'fire') say('FIRE!', 'fire');
