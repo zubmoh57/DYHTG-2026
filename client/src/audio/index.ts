@@ -102,7 +102,8 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
   let lastCountdown = 0;
   game.onFrame(({ countdownSec, run }) => {
     music?.setMood(musicMood(run));
-    if (synth && countdownTicked(lastCountdown, countdownSec)) SOUNDS.countdownTick(synth);
+    // No ticks under the story intro: it covers the countdown in rooms.
+    if (synth && !override && countdownTicked(lastCountdown, countdownSec)) SOUNDS.countdownTick(synth);
     lastCountdown = countdownSec;
   });
 
