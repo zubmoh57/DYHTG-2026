@@ -30,6 +30,7 @@ import { mountResults } from './ui/results';
 import { mountScoreboard } from './ui/scoreboard';
 import { mountStageInstructions } from './ui/stageInstructions';
 import { mountTouchControls } from './ui/touchControls';
+import { lockZoom } from './ui/zoomLock';
 
 const params = new URLSearchParams(window.location.search);
 const soloSeed = Number(params.get('seed')) || 20261017;
@@ -51,6 +52,7 @@ mountHud(ui, game);
 mountCountdown(ui, game);
 mountStageInstructions(ui, game);
 mountTouchControls(ui, game);
+lockZoom(); // no double-tap or pinch zoom on phones
 const audio = mountAudio(ui, game);
 mountEndings(ui, game, audio);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).

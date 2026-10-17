@@ -19,6 +19,30 @@ body {
   color: var(--ink);
 }
 
+/* Phones: touches may scroll (the pond lobby) but never zoom. iPhone also needs ui/zoomLock.ts. */
+html {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+#game,
+#game canvas {
+  touch-action: none;
+}
+
+/* No text selection or long-press menu popping up while tapping the game. */
+#ui {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#ui input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 #game canvas {
   display: block;
 }
