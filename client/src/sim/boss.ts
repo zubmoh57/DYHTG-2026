@@ -108,7 +108,7 @@ export function advanceBossReload(
   return null;
 }
 
-// Call only for a fresh Space press. Repeats/held keys are filtered by input routing.
+// Call only for a fresh fire press (either button). Repeats/held keys are filtered by input routing.
 export function pressBossAttack(state: BossState): BossAttackResult | null {
   if (state.phase !== 'reload' || state.attackResult) return null;
   const fireAtMs = state.rules.readyMs + state.rules.aimMs + state.fireDelayMs;

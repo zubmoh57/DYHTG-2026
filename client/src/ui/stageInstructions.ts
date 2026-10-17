@@ -4,9 +4,13 @@ import type { Stage } from '../core/types';
 import { el } from './dom';
 import { usesTouch } from './touchControls';
 
-/** On phones the card names the on-screen buttons (ui/touchControls.ts) instead of keys. */
+/** On phones the card names the screen halves (ui/touchControls.ts) instead of keys. */
 const forTouch = (controls: string) =>
-  controls.replace(/A and D/g, '◀ ▶').replace(/Space on FIRE/g, '🎯 on FIRE').replace(/press Space/g, 'tap 🎯');
+  controls
+    .replace(/A and D to dodge/g, 'Tap left / right to dodge')
+    .replace(/A and D/g, 'Tap left / right')
+    .replace(/A or D on FIRE/g, 'tap either side on FIRE')
+    .replace(/press A or D/g, 'tap either side of the screen');
 
 interface Instructions {
   title: string;
@@ -36,8 +40,8 @@ const STAGE_INSTRUCTIONS: Partial<Record<Stage, Instructions>> = {
   },
   BOSS: {
     title: 'Dodge the bullets',
-    details: ['When FIRE appears, press Space as fast as you can.'],
-    controls: 'A and D to dodge · Space on FIRE',
+    details: ['When FIRE appears, press A or D as fast as you can.'],
+    controls: 'A and D to dodge · A or D on FIRE',
   },
 };
 const touch = typeof window !== 'undefined' && usesTouch();
@@ -74,8 +78,8 @@ export function mountStageInstructions(root: HTMLElement, game: Game): void {
             el('strong', { text: touch ? forTouch(instructions.controls) : instructions.controls }),
           ]),
           el('p', { className: 'stage-instructions-continue' }, touch
-            ? ['Tap ', el('kbd', { text: 'Continue' }), ' to go']
-            : ['Press ', el('kbd', { text: 'SPACE' }), ' to continue']),
+            ? ['Tap ', el('kbd', { text: 'either side' }), ' to go']
+            : ['Press ', el('kbd', { text: 'A' }), ' or ', el('kbd', { text: 'D' }), ' to continue']),
         );
       }
     }

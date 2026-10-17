@@ -5,8 +5,8 @@ import type { InputSnapshot } from '../src/core/types';
 const press = (left: boolean, right: boolean): InputSnapshot => ({
   leftPressed: left,
   rightPressed: right,
-  spacePressed: false,
-  spaceHeld: false,
+  firePressed: false,
+  fireHeld: false,
 });
 
 describe('LaneMover', () => {

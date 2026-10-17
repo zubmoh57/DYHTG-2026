@@ -2,7 +2,7 @@
 // frame info, and never needs to be called from gameplay code. It returns a volume slider for the lobby.
 //
 // Browsers only allow audio after a user gesture, so nothing plays until the first key or click.
-// The mute button is a click target, not a key, so the game still uses only A/D/Space.
+// The mute button is a click target, not a key, so the game still uses only its two buttons, A and D.
 
 import type { Game } from '../core/Game';
 import { onButton } from '../ui/dom';
@@ -158,7 +158,7 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
     applyMute();
     render();
   });
-  // Let go of focus so A/D/Space go to the game, not the slider.
+  // Let go of focus so A/D go to the game, not the slider.
   slider.addEventListener('change', () => {
     slider.blur();
     if (synth && !muted) SOUNDS.crumb(synth);

@@ -53,7 +53,7 @@ const IN_RUN: ReadonlySet<Stage> = new Set([
 const KEY_HINT: Record<InputMode, string> = {
   none: '',
   lanes: 'A ◀   ▶ D',
-  timing: 'SPACE',
+  timing: 'A or D = FIRE',
 };
 
 export function mountHud(root: HTMLElement, game: Game): void {

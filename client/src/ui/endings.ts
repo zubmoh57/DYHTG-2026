@@ -1,5 +1,5 @@
 // Endings (Vansh): a short film for how Bill went out (a log, Biscuit or the Don) and one for the win.
-// SPACE or a click moves through it and Skip jumps to the end. The film then holds its last frame and
+// A, D or a click moves through it and Skip jumps to the end. The film then holds its last frame and
 // the results card (with Retry) moves onto it, so Retry sits on the animation's own background.
 // Played with the same film player as the intro.
 

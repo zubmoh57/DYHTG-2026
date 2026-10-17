@@ -1,10 +1,11 @@
-// Phone controls (Tejas): ◀ ▶ while dodging, a scope button while firing. They press the same keys
-// as the keyboard (A, D, SPACE) through the game's InputState, so the two-control rule and the input
-// modes work exactly as on a laptop: only the buttons for the current mode are shown.
+// Phone controls (Tejas): the game's two buttons are the two halves of the screen. Tap the left half
+// for LEFT (A) and the right half for RIGHT (D), through the game's InputState, so a phone plays
+// exactly like a laptop: the halves change lane, either half fires at the boss's FIRE, and either half
+// gets past an instruction card. A marker in each bottom corner shows what a tap does right now.
 // Shown on touch screens, or anywhere with ?touch.
 
 import type { Game } from '../core/Game';
-import type { InputMode, Stage } from '../core/types';
+import type { Stage } from '../core/types';
 import { el } from './dom';
 
 const IN_RUN: ReadonlySet<Stage> = new Set(['RUNNER_1', 'DIVE', 'UNDERWATER', 'SURFACE_RETURN', 'RUNNER_2', 'BOSS']);
@@ -19,62 +20,75 @@ export function usesTouch(): boolean {
   return matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 && matchMedia('(hover: none)').matches;
 }
 
+/** What a tap does right now, shown in each half's marker. */
+type ZoneLook = 'lane' | 'fire' | 'next' | 'idle';
+
 export function mountTouchControls(root: HTMLElement, game: Game): void {
   if (!usesTouch()) return;
   document.body.classList.add('touch');
 
-  const button = (className: string, keyCode: string, label: string) => {
-    const b = el('div', { className: `touch-btn ${className}` });
-    b.innerHTML = label;
-    b.setAttribute('role', 'button');
-    let pointer: number | null = null;
-    const release = () => {
-      if (pointer === null) return;
-      pointer = null;
-      b.classList.remove('down');
+  /** One half of the screen: pressing it is pressing that key. Extra fingers on the same half don't double-press. */
+  const zone = (side: 'left' | 'right', keyCode: string) => {
+    const marker = el('div', { className: 'touch-marker' });
+    const z = el('div', { className: `touch-zone ${side}` }, [marker]);
+    z.setAttribute('role', 'button');
+    z.setAttribute('aria-label', side === 'left' ? 'Left button' : 'Right button');
+    const pointers = new Set<number>();
+    const release = (e: PointerEvent) => {
+      if (!pointers.delete(e.pointerId) || pointers.size > 0) return;
+      z.classList.remove('down');
       game.input.keyUp(keyCode);
     };
-    b.addEventListener('pointerdown', (e) => {
+    z.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      if (pointer !== null) return;
-      pointer = e.pointerId;
-      b.classList.add('down');
-      game.input.keyDown(keyCode, false);
-      navigator.vibrate?.(8);
+      if (pointers.size === 0) {
+        z.classList.add('down');
+        game.input.keyDown(keyCode, false);
+        navigator.vibrate?.(8);
+      }
+      pointers.add(e.pointerId);
       try {
-        b.setPointerCapture(e.pointerId); // the press ends where the thumb lifts, even off the button
+        z.setPointerCapture(e.pointerId); // the press ends where the thumb lifts, even outside the half
       } catch {
         // pointer already gone
       }
     });
-    b.addEventListener('pointerup', release);
-    b.addEventListener('pointercancel', release);
-    b.addEventListener('lostpointercapture', release);
-    b.addEventListener('contextmenu', (e) => e.preventDefault());
-    return b;
+    z.addEventListener('pointerup', release);
+    z.addEventListener('pointercancel', release);
+    z.addEventListener('lostpointercapture', release);
+    z.addEventListener('contextmenu', (e) => e.preventDefault());
+    return {
+      element: z,
+      show(look: ZoneLook) {
+        z.dataset.look = look;
+        marker.innerHTML = look === 'fire' ? SCOPE : look === 'next' ? 'TAP' : side === 'left' ? '◀' : '▶';
+      },
+    };
   };
 
-  const left = button('left', 'KeyA', '◀');
-  const right = button('right', 'KeyD', '▶');
-  const fire = button('fire', 'Space', SCOPE);
-  const pad = el('div', { className: 'touch-controls' }, [left, right, fire]);
+  const left = zone('left', 'KeyA');
+  const right = zone('right', 'KeyD');
+  const pad = el('div', { className: 'touch-controls' }, [left.element, right.element]);
 
-  let shownFor: string | null = null;
+  let shownFor: ZoneLook | null = null;
   game.onFrame(({ run, inputMode, waitingForInstructions }) => {
     const inRun = IN_RUN.has(run.stage);
     if (inRun !== pad.isConnected) {
       if (inRun) root.appendChild(pad);
       else pad.remove();
     }
-    const key = `${inRun}:${inputMode}:${waitingForInstructions}`;
-    if (key === shownFor) return;
-    shownFor = key;
-    const mode: InputMode = inRun ? inputMode : 'none';
-    // Lanes buttons stay visible (dimmed) between lane sections so thumbs know where they are.
-    left.classList.toggle('hidden', mode === 'timing' || waitingForInstructions);
-    right.classList.toggle('hidden', mode === 'timing' || waitingForInstructions);
-    // The same Space button acknowledges the instructions before gameplay starts.
-    fire.innerHTML = waitingForInstructions ? 'Continue' : SCOPE;
-    fire.classList.toggle('hidden', mode !== 'timing' && !waitingForInstructions);
+    const look: ZoneLook = !inRun
+      ? 'idle'
+      : waitingForInstructions
+        ? 'next'
+        : inputMode === 'timing'
+          ? 'fire'
+          : inputMode === 'lanes'
+            ? 'lane'
+            : 'idle';
+    if (look === shownFor) return;
+    shownFor = look;
+    left.show(look);
+    right.show(look);
   });
 }

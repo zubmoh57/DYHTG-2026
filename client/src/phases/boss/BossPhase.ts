@@ -1,5 +1,5 @@
 // The mafia pigeon boss (Tejas renders; Zubair's sim/boss.ts decides). Dodge three aimed shots with
-// A/D, then react to Ready → Aim → green FIRE with Space for the laser (GAME_BRIEF §6, ZUBAIR_BASE.md).
+// A/D, then react to Ready → Aim → green FIRE with either button for the laser (GAME_BRIEF §6, ZUBAIR_BASE.md).
 // Swim power-ups apply here: a 5 s shield at the start, or the laser hitting 50% harder.
 // It opens with an intro: Bill skids to a stop, Don Crumbs swoops down onto his crate, and his
 // name card and taunt play in letterbox before the fight starts.
@@ -165,7 +165,7 @@ export function createBossPhase(): PhaseFactory {
           result.reason === 'early'
             ? 'Too early! 1 damage'
             : result.reason === 'held'
-              ? 'Space was held! 1 damage'
+              ? 'Held too early! 1 damage'
               : `Too slow!${result.damage ? ` ${result.damage} damage` : ''}`;
         say(text, 'bad');
       }
@@ -388,15 +388,15 @@ export function createBossPhase(): PhaseFactory {
           if (volleyCleared && beginBossReload(sim, 1000 * (
             R.fireDelayMinSec + reactionRandom.next() * (R.fireDelayMaxSec - R.fireDelayMinSec)
           ))) {
-            ctx.requestInputMode('timing'); // Space only; the duck can't move now
+            ctx.requestInputMode('timing'); // either button fires; the duck can't move now
             ctx.bill.setPose('idle');
             pigeon.setWindUp(0);
           }
         } else if (sim.phase === 'reload' && resultT < 0) {
           // Advance with the held state from BEFORE this frame's press, then apply the press.
-          const heldBefore = ctx.input.spaceHeld && !ctx.input.spacePressed;
+          const heldBefore = ctx.input.fireHeld && !ctx.input.firePressed;
           let result = advanceBossReload(sim, dt * 1000, heldBefore);
-          if (!result && ctx.input.spacePressed) result = pressBossAttack(sim);
+          if (!result && ctx.input.firePressed) result = pressBossAttack(sim);
           if (result) showResult(result);
           else {
             const p = getBossPrompt(sim);

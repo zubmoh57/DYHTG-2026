@@ -12,7 +12,7 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
- * Wire a menu button. Focus is dropped after the click: otherwise the next Space press would
+ * Wire a menu button. Focus is dropped after the click: otherwise a later Space or Enter press would
  * "click" the focused button again instead of reaching the game.
  */
 export function onButton(button: HTMLButtonElement, action: () => void): void {

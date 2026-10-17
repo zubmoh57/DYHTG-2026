@@ -23,7 +23,7 @@ export type PhaseId = 'runner1' | 'underwater' | 'runner2' | 'boss';
 
 export type RunStatus = 'waiting' | 'running' | 'failed' | 'finished';
 
-/** lanes = A/D only. timing = Space only. A, D and Space are never all live at once (brief §3). */
+/** The game has two buttons, A and D. lanes = they change lane. timing = either one fires. none = either one continues. */
 export type InputMode = 'none' | 'lanes' | 'timing';
 
 export type FailReason = 'lives';
@@ -42,10 +42,10 @@ export interface InputSnapshot {
   leftPressed: boolean;
   /** Fresh D keydown this frame. Always false outside 'lanes' mode. */
   rightPressed: boolean;
-  /** Fresh Space keydown this frame. Always false outside 'timing' mode. */
-  spacePressed: boolean;
-  /** Space is physically held down right now, in any mode. The boss needs it: holding Space = Miss. */
-  spaceHeld: boolean;
+  /** Fresh press of EITHER button this frame. Always false outside 'timing' mode. */
+  firePressed: boolean;
+  /** A button pressed during 'timing' mode is still held. The boss needs it: held through FIRE = Miss. */
+  fireHeld: boolean;
 }
 
 export interface RunState {

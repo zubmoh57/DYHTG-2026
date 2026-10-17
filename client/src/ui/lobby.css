@@ -732,6 +732,21 @@ button.big.start {
   animation: start-pulse 1.6s ease-in-out infinite;
 }
 
+.screen-toggle {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.screen-toggle.on {
+  background: #ffd23f;
+  color: #3a2a10;
+}
+
 .action-hint {
   margin: 8px 0 0;
   color: #fff;
@@ -914,18 +929,36 @@ button.big.start {
   box-shadow: 0 6px 0 #1272a8;
 }
 
-/* --- Touch controls ------------------------------------------------------------------------- */
+/* --- Touch controls: the two halves of the screen are the two buttons (touchControls.ts) --------- */
 
 .touch-controls {
   position: absolute;
+  /* Below the HUD row, so the sound button and the scoreboard stay tappable. */
+  top: calc(64px + env(safe-area-inset-top));
   left: 0;
   right: 0;
   bottom: 0;
-  height: 0;
+  display: flex;
   pointer-events: none;
 }
 
-.touch-btn {
+.touch-zone {
+  position: relative;
+  flex: 1;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.08s;
+}
+
+.touch-zone.down {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* The marker in each bottom corner says what a tap does right now. */
+.touch-marker {
   position: absolute;
   bottom: max(22px, env(safe-area-inset-bottom));
   width: 84px;
@@ -935,54 +968,55 @@ button.big.start {
   background: rgba(20, 30, 45, 0.35);
   color: #fff;
   font-size: 34px;
+  font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
   backdrop-filter: blur(3px);
-  transition: transform 0.06s, background 0.06s, opacity 0.2s;
+  transition: transform 0.06s, background 0.15s, opacity 0.2s;
 }
 
-.touch-btn.left {
+.touch-zone.left .touch-marker {
   left: 18px;
 }
 
-.touch-btn.right {
+.touch-zone.right .touch-marker {
   right: 18px;
 }
 
-.touch-btn.fire {
-  left: 50%;
-  width: 116px;
-  height: 116px;
-  margin-left: -58px;
-  background: rgba(200, 30, 40, 0.45);
+.touch-zone.down .touch-marker {
+  transform: scale(0.88);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.touch-marker svg {
+  width: 72%;
+  height: 72%;
+}
+
+/* FIRE: both halves fire, so both markers become a red scope. */
+.touch-zone[data-look='fire'] .touch-marker {
+  width: 100px;
+  height: 100px;
+  background: rgba(200, 30, 40, 0.5);
   animation: fire-glow 1s ease-in-out infinite;
 }
 
-.touch-btn.fire svg {
-  width: 74%;
-  height: 74%;
+/* An instruction card is up: either half continues. */
+.touch-zone[data-look='next'] .touch-marker {
+  font-size: 20px;
+  background: rgba(30, 150, 90, 0.75);
+  animation: fire-glow 1.2s ease-in-out infinite;
+}
+
+.touch-zone[data-look='idle'] .touch-marker {
+  opacity: 0.35;
 }
 
 @keyframes fire-glow {
   50% {
-    box-shadow: 0 0 0 10px rgba(255, 80, 80, 0.25);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.2);
   }
-}
-
-.touch-btn.down {
-  transform: scale(0.9);
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.touch-btn.hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 body.touch #ui > .keys {

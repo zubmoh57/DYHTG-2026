@@ -1,8 +1,8 @@
 // Tiny film player (Vansh) for the story intro and the endings. Each shot has a moving camera and
 // characters on a timeline (Web Animations, so it runs on the compositor and stays smooth), with comic
 // subtitles, speech bubbles and sound-effect bursts timed in. Shots hard-cut with a flash.
-// SPACE or a click cuts to the next shot and "Skip" ends it, unless the film follows a fixed clock
-// (rooms), where it is seeked to match so everyone sees the same thing. Only SPACE and clicks.
+// A or D (the game's two buttons) or a click cuts to the next shot and "Skip" ends it, unless the film
+// follows a fixed clock, where it is seeked to match. Only the two buttons and clicks.
 
 import type { AudioHandle } from '../audio';
 import type { MusicTrack, SoundName } from '../audio/soundMap';
@@ -156,7 +156,7 @@ export function playFilm(
 
   const frame = el('div', { className: 'film' });
   const skip = el('button', { className: 'intro-skip', text: 'Skip ⏭' });
-  const hint = el('div', { className: 'intro-hint', text: 'SPACE ▸' });
+  const hint = el('div', { className: 'intro-hint', text: 'A / D ▸' });
   const progress = el('div', { className: 'intro-progress' }, [el('span')]);
   const overlay = el('div', { className: 'intro' }, [frame, progress, hint, skip]);
   const bar = progress.firstElementChild as HTMLElement;
@@ -222,9 +222,9 @@ export function playFilm(
   };
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.code !== 'Space') return;
+    if (e.code !== 'KeyA' && e.code !== 'KeyD') return;
     e.preventDefault();
-    e.stopPropagation(); // the run hasn't started; keep SPACE to ourselves
+    e.stopPropagation(); // the run hasn't started; keep the buttons to ourselves
     if (!timed && !e.repeat) cut(index + 1);
   };
 
