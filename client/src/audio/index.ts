@@ -1,5 +1,5 @@
 // Sound for the whole game (Vansh). Call mountAudio(root, game) once: it listens to GameEvents and
-// frame info, and never needs to be called from gameplay code.
+// frame info, and never needs to be called from gameplay code. It returns a volume slider for the lobby.
 //
 // Browsers only allow audio after a user gesture, so nothing plays until the first key or click.
 // The mute button is a click target, not a key, so the game still uses only A/D/Space.
@@ -12,6 +12,30 @@ import { SOUNDS } from './sounds';
 import { Synth } from './synth';
 
 const MUTE_KEY = 'duckrun.muted';
+const VOLUME_KEY = 'duckrun.volume';
+const DEFAULT_VOLUME = 0.8;
+
+export interface AudioHandle {
+  /** A labelled volume slider, for the home menu. */
+  volumeControl: HTMLElement;
+}
+
+function loadVolume(): number {
+  try {
+    const v = Number(localStorage.getItem(VOLUME_KEY));
+    return localStorage.getItem(VOLUME_KEY) !== null && v >= 0 && v <= 1 ? v : DEFAULT_VOLUME;
+  } catch {
+    return DEFAULT_VOLUME;
+  }
+}
+
+function saveVolume(volume: number): void {
+  try {
+    localStorage.setItem(VOLUME_KEY, String(volume));
+  } catch {
+    // blocked storage: the slider still works for this visit
+  }
+}
 
 function loadMuted(): boolean {
   try {
@@ -29,14 +53,15 @@ function saveMuted(muted: boolean): void {
   }
 }
 
-export function mountAudio(root: HTMLElement, game: Game): void {
+export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
   let synth: Synth | null = null;
   let music: Music | null = null;
   let muted = loadMuted();
+  let volume = loadVolume();
 
   const applyMute = () => {
     if (!synth) return;
-    synth.master.gain.setTargetAtTime(muted ? 0 : 0.8, synth.now, 0.02);
+    synth.master.gain.setTargetAtTime(muted ? 0 : volume, synth.now, 0.02);
   };
 
   // Create the AudioContext on the first gesture, then start whatever music the stage wants.
@@ -100,9 +125,40 @@ export function mountAudio(root: HTMLElement, game: Game): void {
   onButton(button, () => {
     unlock();
     muted = !muted;
+    if (!muted && volume === 0) volume = DEFAULT_VOLUME; // unmuting a slider dragged to zero
     saveMuted(muted);
     applyMute();
     render();
   });
   root.appendChild(button);
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.min = '0';
+  slider.max = '100';
+  slider.value = String(Math.round((muted ? 0 : volume) * 100));
+  slider.setAttribute('aria-label', 'Volume');
+  const volumeControl = document.createElement('label');
+  volumeControl.className = 'volume';
+  volumeControl.append('🔈', slider, '🔊');
+  slider.addEventListener('input', () => {
+    unlock();
+    volume = Number(slider.value) / 100;
+    muted = volume === 0;
+    saveVolume(volume);
+    saveMuted(muted);
+    applyMute();
+    render();
+  });
+  // Let go of focus so A/D/Space go to the game, not the slider.
+  slider.addEventListener('change', () => {
+    slider.blur();
+    if (synth && !muted) SOUNDS.crumb(synth);
+  });
+  // Keep the slider in step with the mute button.
+  onButton(button, () => {
+    slider.value = String(Math.round((muted ? 0 : volume) * 100));
+  });
+
+  return { volumeControl };
 }
