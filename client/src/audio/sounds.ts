@@ -93,12 +93,12 @@ export const SOUNDS: Record<SoundName, (s: Synth) => void> = {
   },
 
   coin: (s) => {
-    // Classic two-note coin blip.
-    s.tone({ freq: midiToFreq(83), type: 'square', dur: 0.06, gain: 0.09 });
-    s.tone({ freq: midiToFreq(88), type: 'square', at: 0.06, dur: 0.18, gain: 0.09 });
+    // Classic two-note coin blip, kept quiet: you collect a lot of these.
+    s.tone({ freq: midiToFreq(83), type: 'square', dur: 0.05, gain: 0.035 });
+    s.tone({ freq: midiToFreq(88), type: 'square', at: 0.05, dur: 0.12, gain: 0.035 });
   },
 
-  swish: (s) => s.noise({ dur: 0.18, gain: 0.1, filter: { type: 'bandpass', freq: 400, to: 1400, q: 1.5 } }),
+  swish: (s) => s.noise({ dur: 0.15, gain: 0.05, filter: { type: 'bandpass', freq: 400, to: 1400, q: 1.5 } }),
 
   zap: (s) => {
     // Jellyfish sting: buzzy and jittery.
