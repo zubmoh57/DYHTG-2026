@@ -18,7 +18,7 @@ export function mountResults(root: HTMLElement, game: Game, onRetry: () => void)
     const finished = e.stage === 'FINISHED';
     if (finished && (bestMs === null || run.elapsedMs < bestMs)) bestMs = run.elapsedMs;
 
-    const retry = el('button', { text: 'Retry' });
+    const retry = el('button', { text: finished ? 'Play again' : 'Retry' });
     onButton(retry, onRetry);
     panel = el('div', { className: 'panel' }, [
       el('h1', { text: finished ? 'Made it!' : 'Failed' }),
