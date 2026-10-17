@@ -1,9 +1,8 @@
-// Hand-made starter course for the runners (Tejas). Rayyan's seeded generator in course/ will
-// replace buildStarterCourse(); the Course format in course/types.ts stays the same.
+// Shared seeded runner generator. Extend this implementation when adding course chunks.
 
-import { CONFIG } from '../../core/config';
-import type { SeededRandom } from '../../core/seededRandom';
-import type { Chunk, Course, CourseItem, Lane } from '../../course/types';
+import { CONFIG } from '../core/config';
+import type { SeededRandom } from '../core/seededRandom';
+import type { Chunk, Course, CourseItem, Lane } from './types';
 
 /** Empty water at the start (time to settle in) and at the end (room for the heart and transitions). */
 const RUNWAY = 40;

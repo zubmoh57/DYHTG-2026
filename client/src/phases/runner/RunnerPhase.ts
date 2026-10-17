@@ -1,21 +1,29 @@
-// Runner 1 and Runner 2 (Tejas): auto-run on water in three lanes, dodge branches with A/D.
-// Runner 2 adds breadcrumbs (score only) and the heart before the boss (brief §4).
+// Runner 1 and Runner 2 (Tejas): auto-run on the forest river in three lanes, dodge branches with A/D.
+// Runner 1 has a dog on Bill's tail; Runner 2 adds breadcrumbs (score only), the heart before the
+// boss (brief §4), and the speed boost if the swim's coins bought it (DESIGN_CHANGES.md).
 
 import * as THREE from 'three';
 import { CONFIG } from '../../core/config';
 import { LaneMover } from '../../core/LaneMover';
+import { powerUpFor } from '../../core/RunState';
 import type { Phase, PhaseContext, PhaseFactory } from '../../core/types';
 import type { Course, CourseItem } from '../../course/types';
 import { disposeObject } from '../../render/dispose';
+import { showToast } from '../../ui/toast';
 import { CameraRig } from './cameraRig';
+import { DogView } from './dogView';
 import { Particles, RunnerWorld, makeBranch, makeCrumb, makeHeart } from './runnerView';
-import { buildStarterCourse } from './starterCourse';
+import { buildStarterCourse } from '../../course/generateCourse';
 
 export interface RunnerOptions {
   section: 'runner1' | 'runner2';
   length: number;
   crumbs: boolean;
   heart: boolean;
+  /** A dog chases Bill (Runner 1). */
+  dog?: boolean;
+  /** Apply the swim's speed boost at the start, if it was bought (Runner 2). */
+  boost?: boolean;
 }
 
 /** Half the depth of Bill's hitbox along the track. Items are caught with a swept check. */
@@ -25,10 +33,22 @@ const PICKUP_HALF_DEPTH = 0.8;
 const VIEW_AHEAD = 130;
 const HIT_STOP_SEC = 0.07;
 
+/** The dog: how far behind Bill it runs (world units), and how long it stays close after a hit. */
+const DOG = {
+  closeGap: 3.4,
+  awayGap: 10, // behind the camera, out of sight
+  introSec: 2.6,
+  closeSec: 5,
+  /** A second hit while the dog is close: it bites once Bill's 1 s invulnerability has passed. */
+  biteDelaySec: 1.05,
+};
+
 interface Placed {
   item: CourseItem;
   object: THREE.Object3D;
+  /** Collision already decided (hit, collected or passed). It still scrolls past while visible. */
   done: boolean;
+  collected: boolean;
   /** Set once hit: the branch tumbles away for a moment. */
   flyT: number;
   phase: number;
@@ -54,6 +74,18 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
     let squashDir = 0;
     let time = 0;
 
+    const dog = options.dog ? new DogView() : null;
+    let dogGap = DOG.closeGap;
+    let dogX = 0;
+    let dogMode: 'close' | 'away' | 'bite' = 'close';
+    let dogTimer = DOG.introSec; // how long it stays close
+    let biteIn = 0;
+
+    const boosted = options.boost === true && powerUpFor(ctx.run.coins) === 'boost';
+    let boostT = boosted ? CONFIG.powerUps.boostSec : 0;
+    const speedLines = document.createElement('div');
+    speedLines.className = 'speed-lines';
+
     const flashScreen = (kind: 'hit' | 'heal') => {
       flash.className = 'screen-flash';
       void flash.offsetWidth; // restart the CSS animation
@@ -62,6 +94,19 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
 
     const onHit = (p: Placed) => {
       if (!ctx.damagePlayer()) return; // still invulnerable: no life lost, no slowdown
+      if (dog) {
+        // Stumble once and the dog catches up; stumble again while it's on you and it bites.
+        if (dogMode === 'close') {
+          dogMode = 'bite';
+          biteIn = DOG.biteDelaySec;
+        } else if (dogMode === 'away') {
+          dogMode = 'close';
+          dogTimer = DOG.closeSec;
+          showToast('🐕 The dog is on your tail!', 'bad', 1400);
+        }
+        dog.bark();
+        ctx.emit({ type: 'cue', name: 'bark' });
+      }
       speed *= CONFIG.runner.hitSpeedMultiplier; // confirmed: -30%, even mid-acceleration
       hitStop = HIT_STOP_SEC;
       rig.addTrauma(0.55);
@@ -74,7 +119,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
     };
 
     const onPickup = (p: Placed) => {
-      p.done = true;
+      p.collected = true;
       p.object.visible = false;
       const z = p.object.position.z;
       if (p.item.kind === 'crumb') {
@@ -95,9 +140,21 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
           if (item.kind !== 'branch') object.position.x = CONFIG.runner.lanes[item.lanes[0]];
           object.visible = false;
           root.add(object);
-          placed.push({ item, object, done: false, flyT: 0, phase: Math.random() * Math.PI * 2 });
+          placed.push({ item, object, done: false, collected: false, flyT: 0, phase: Math.random() * Math.PI * 2 });
         }
         root.add(world.group, particles.group);
+        if (dog) {
+          dog.root.scale.setScalar(0.8);
+          root.add(dog.root);
+          dog.bark();
+          showToast('🐕 Run! A dog is chasing you!', 'bad', 2000);
+        }
+        if (boosted) {
+          speed = CONFIG.runner.maxSpeed * CONFIG.powerUps.boostSpeedMultiplier;
+          document.getElementById('ui')?.appendChild(speedLines);
+          showToast('⚡ SPEED BOOST!', 'good', 1600);
+          ctx.emit({ type: 'cue', name: 'boost' });
+        }
         ctx.scene.add(root);
         document.getElementById('ui')?.appendChild(flash);
         ctx.bill.setPose('run');
@@ -120,7 +177,11 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
         const worldDt = hitStop > 0 ? 0 : dt;
         hitStop = Math.max(0, hitStop - dt);
 
-        speed = Math.min(CONFIG.runner.maxSpeed, speed + CONFIG.runner.acceleration * worldDt);
+        // The boost lifts the speed cap for a few seconds, then normal speed takes over again.
+        boostT = Math.max(0, boostT - dt);
+        const cap = boostT > 0 ? CONFIG.runner.maxSpeed * CONFIG.powerUps.boostSpeedMultiplier : CONFIG.runner.maxSpeed;
+        speed = speed > cap ? Math.max(cap, speed - 6 * worldDt) : Math.min(cap, speed + CONFIG.runner.acceleration * worldDt);
+        if (boosted && boostT === 0 && speedLines.isConnected) speedLines.remove();
         const previous = distance;
         const step = speed * worldDt;
         distance = Math.min(course.length, distance + step);
@@ -137,23 +198,21 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
             if (p.flyT > 0.6) p.object.visible = false;
             continue;
           }
-          if (p.done) continue;
-
-          // Swept check: did Bill's hitbox pass over this item since last frame? (No tunnelling.)
-          const half = p.item.kind === 'branch' ? HIT_HALF_DEPTH : PICKUP_HALF_DEPTH;
-          const crossed = previous <= p.item.distance + half && distance >= p.item.distance - half;
-          if (crossed && p.item.lanes.includes(lanes.lane)) {
-            if (p.item.kind === 'branch') {
+          if (!p.done) {
+            // Swept check: did Bill's hitbox pass over this item since last frame? (No tunnelling.)
+            const half = p.item.kind === 'branch' ? HIT_HALF_DEPTH : PICKUP_HALF_DEPTH;
+            const crossed = previous <= p.item.distance + half && distance >= p.item.distance - half;
+            if (crossed && p.item.lanes.includes(lanes.lane)) {
               p.done = true;
-              onHit(p);
-            } else {
-              onPickup(p);
+              if (p.item.kind === 'branch') onHit(p);
+              else onPickup(p);
+            } else if (distance > p.item.distance + half) {
+              p.done = true; // passed safely
             }
-            continue;
           }
-          if (distance > p.item.distance + half) {
-            p.done = true; // passed safely
-          }
+          // Collected pickups and smashed branches are handled above; everything else keeps
+          // scrolling past Bill until it's behind the camera (it must never freeze beside him).
+          if (p.collected || p.flyT > 0) continue;
 
           const ahead = p.item.distance - distance;
           p.object.visible = ahead < VIEW_AHEAD && ahead > -12;
@@ -188,6 +247,35 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
         }
         particles.update(dt, step);
 
+        if (dog) {
+          dogTimer -= dt;
+          if (dogMode === 'close' && dogTimer <= 0) dogMode = 'away';
+          if (dogMode === 'bite') {
+            biteIn -= dt;
+            dog.setLunge(Math.max(0, 1 - biteIn / DOG.biteDelaySec));
+            if (biteIn <= 0) {
+              if (ctx.damagePlayer()) {
+                ctx.emit({ type: 'cue', name: 'bite' });
+                ctx.bill.setPose('hit');
+                rig.addTrauma(0.6);
+                flashScreen('hit');
+                showToast('🐕 CHOMP!', 'bad', 1000);
+              }
+              dog.setLunge(0);
+              dogMode = 'away';
+            }
+          }
+          const target = dogMode === 'away' ? DOG.awayGap : dogMode === 'bite' ? 1.4 : DOG.closeGap;
+          dogGap += (target - dogGap) * Math.min(1, dt * (dogMode === 'away' ? 0.8 : 3));
+          // Half a lane to the side (towards the middle) so it never hides Bill; straight behind to bite.
+          const side = dogMode === 'bite' ? 0 : lanes.x > 0 ? -1.3 : 1.3;
+          dogX += (lanes.x + side - dogX) * Math.min(1, dt * 4);
+          dog.root.position.set(dogX, 0, dogGap);
+          dog.root.visible = dogGap < 7;
+          dog.update(dt);
+        }
+
+        // Above 1 while boosted: the camera widens a little more.
         const speed01 = (speed - CONFIG.runner.startSpeed) / (CONFIG.runner.maxSpeed - CONFIG.runner.startSpeed);
         rig.update(dt, lanes.x, Math.max(0, speed01));
 
@@ -198,6 +286,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
 
       exit() {
         flash.remove();
+        speedLines.remove();
         ctx.bill.object.scale.set(1, 1, 1);
         ctx.bill.object.rotation.z = 0;
         disposeObject(root);

@@ -86,7 +86,11 @@ export function cleanNickname(nickname: string): string {
   return name;
 }
 
-export function createLocalRooms(store: RoomStore = browserRoomStore()): RoomApi {
+export interface LocalRoomApi extends RoomApi {
+  dispose(): Promise<void>;
+}
+
+export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRoomApi {
   let info: RoomInfo | null = null;
   let lastStartAt: number | null = null;
   const playerListeners = new Set<(players: RoomPlayer[]) => void>();
@@ -107,7 +111,7 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): RoomApi
     }
   };
 
-  store.subscribe((code) => {
+  const unsubscribeStore = store.subscribe((code) => {
     if (info && code === info.code) refresh();
   });
 
@@ -120,7 +124,7 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): RoomApi
     refresh();
   };
 
-  const api: RoomApi = {
+  const api: LocalRoomApi = {
     mode: 'local',
 
     async createRoom(nickname) {
@@ -171,6 +175,13 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): RoomApi
     onStart(listener) {
       startListeners.add(listener);
       return () => startListeners.delete(listener);
+    },
+
+    async dispose() {
+      unsubscribeStore();
+      playerListeners.clear();
+      startListeners.clear();
+      await api.leaveRoom();
     },
 
     async leaveRoom() {

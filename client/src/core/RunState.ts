@@ -1,9 +1,9 @@
-// Timer, lives, oxygen, score, boss health and attempt reset (brief §4, §5, §6, §7).
+// Timer, lives, coins, power-ups, score, boss health and attempt reset (brief §4, §6, §7 + DESIGN_CHANGES.md).
 // Pure functions on a plain object, so every rule can be unit tested without a browser.
 // Only core/Game.ts calls these; phases go through PhaseContext.
 
 import { CONFIG } from './config';
-import type { FailReason, PhaseId, RunState, Stage } from './types';
+import type { FailReason, PhaseId, PowerUp, RunState, Stage } from './types';
 
 export interface RunIdentity {
   roomId: string;
@@ -16,7 +16,7 @@ export const STAGE_PHASE: Record<Stage, PhaseId> = {
   LOBBY: 'runner1',
   COUNTDOWN: 'runner1',
   RUNNER_1: 'runner1',
-  SUB_ENTRY: 'underwater',
+  DIVE: 'underwater',
   UNDERWATER: 'underwater',
   SURFACE_RETURN: 'runner2',
   RUNNER_2: 'runner2',
@@ -46,7 +46,7 @@ export function resetForAttempt(state: RunState, attemptId: string): void {
   state.status = 'waiting';
   state.elapsedMs = 0;
   state.lives = CONFIG.lives.start;
-  state.oxygen = CONFIG.oxygen.start;
+  state.coins = 0;
   state.score = 0;
   state.phaseDistance = 0;
   state.phaseLength = 0;
@@ -83,17 +83,22 @@ export function collectHeart(state: RunState): boolean {
   return true;
 }
 
-export type OxygenResult = 'ignored' | 'lost' | 'empty';
+/** Coins from the swim. Returns the change actually made (never below 0). */
+export function addCoins(state: RunState, delta: number): number {
+  if (!isRunning(state)) return 0;
+  const next = Math.max(0, state.coins + Math.round(delta));
+  const change = next - state.coins;
+  state.coins = next;
+  return change;
+}
 
-/** Oxygen is separate from lives. The third lost bubble fails the run (brief §5). */
-export function applyOxygenLoss(state: RunState): OxygenResult {
-  if (!isRunning(state)) return 'ignored';
-  state.oxygen = Math.max(0, state.oxygen - 1);
-  if (state.oxygen === 0) {
-    fail(state, 'oxygen');
-    return 'empty';
-  }
-  return 'lost';
+/** The best power-up the coins can afford, automatically: 100 laser, 50 boost, 20 shield. */
+export function powerUpFor(coins: number): PowerUp {
+  const p = CONFIG.powerUps;
+  if (coins >= p.laserCoins) return 'laser';
+  if (coins >= p.boostCoins) return 'boost';
+  if (coins >= p.shieldCoins) return 'shield';
+  return 'none';
 }
 
 export interface BossDamageResult {

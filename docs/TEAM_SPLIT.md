@@ -1,5 +1,7 @@
 # Duck Run: who builds what
 
+> **Read `DESIGN_CHANGES.md` first.** The sub and the underwater timing ring/oxygen are gone: the swim is now A/D lanes with coins that buy power-ups, Runner 1 has a chasing dog, and the boss is a mafia pigeon.
+
 Read `PROJECT_BRIEF.md` for the original full brief, `DUCK_RUN_ADDENDUM.md` for the latest clarifications, and `GAME_BRIEF.md` for the consolidated Duck Run design. Current confirmed rules override historical examples.
 
 **Latest Zubair handoff:** Zubair supplies the gameplay-only modules in `client/src/sim/`; Tejas owns frontend presentation and input wiring for this contribution. See [ZUBAIR_BASE.md](ZUBAIR_BASE.md). Preserve the existing core contracts below and add phase adapters; do not replace Tejas's controller or introduce a second animation loop. The older rendering tasks for Zubair below are superseded by this boundary. Early Ready/Aim presses and Space held when Fire appears each end the duck's attack for **1 damage**.

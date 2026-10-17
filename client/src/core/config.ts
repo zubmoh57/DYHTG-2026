@@ -9,9 +9,6 @@ export const CONFIG = {
     start: 3,
     invulnerableSec: 1, // confirmed
   },
-  oxygen: {
-    start: 3,
-  },
   runner: {
     lanes: [-2.5, 0, 2.5] as const,
     laneChangeSec: 0.15,
@@ -22,16 +19,22 @@ export const CONFIG = {
     runner1Distance: 1400,
     runner2Distance: 850,
   },
-  underwater: {
-    speed: 15,
-    distance: 1000,
-    smallBoost: 1.25,
-    strongBoost: 1.5,
-    boostSec: 3,
-    windows: 10,
-    ringSec: 2,
-    strongBoostMinAccuracy: 90,
-    smallBoostMinAccuracy: 50,
+  /** The swim (DESIGN_CHANGES.md): A/D lanes, dodge sea creatures, collect coins. */
+  swim: {
+    speed: 16,
+    distance: 760, // about 48 seconds
+    coinsLostOnHit: 5,
+    hitSlowdown: 0.6,
+  },
+  /** Bought automatically with swim coins: the best one you can afford (DESIGN_CHANGES.md). */
+  powerUps: {
+    shieldCoins: 20,
+    boostCoins: 50,
+    laserCoins: 100,
+    shieldSec: 5, // at the start of the boss fight
+    boostSec: 6, // at the start of Runner 2
+    boostSpeedMultiplier: 1.35,
+    laserDamageMultiplier: 1.5,
   },
   boss: {
     health: 30000, // confirmed (addendum §1)
@@ -52,9 +55,6 @@ export const CONFIG = {
     },
     bulletSpeed: 15, // UNDECIDED: units per second
     windUpSec: 0.5, // readable warning before each shot
-  },
-  timing: {
-    perfectToleranceSec: 0.05, // underwater ring
   },
   score: {
     max: 300000, // confirmed cap (addendum §3); how the points are allocated is UNDECIDED

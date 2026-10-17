@@ -1,5 +1,7 @@
 # Zubair's gameplay base — handoff to Tejas
 
+> Historical handoff: the underwater and timing-ring modules described below were removed after the swim redesign. Use `phases/underwater/SwimPhase.ts` for current underwater gameplay and see `DESIGN_CHANGES.md`. The boss module and its rendering adapter remain active.
+
 These modules contain gameplay state and rules only. **Tejas owns all frontend presentation for this contribution:** scenes, cameras, submarine/pigeon models, animations, timing-ring drawing, prompt text, HUD, and input wiring. No existing frontend or shared controller files are changed.
 
 ## Files

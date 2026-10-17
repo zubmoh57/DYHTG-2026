@@ -3,13 +3,13 @@
 // URLs:
 //   /?room=QUAK         open the lobby with a room code filled in (invite links)
 // Dev URLs:
-//   /?phase=boss        jump straight into a stage (runner1, sub-entry, underwater, surface-return, runner2, boss)
-//   /?short             runners at a fifth of their length
+//   /?phase=boss        jump straight into a stage (runner1, dive, swim, surface-return, runner2, boss)
+//   /?short             runners and the swim at a fifth of their length
 //   /?seed=42           solo practice on a specific course (rooms supply their own seed)
 
 import './ui/ui.css';
 import { Game } from './core/Game';
-import { createLocalRooms } from './network/localRooms';
+import { OfflineRoomService } from './network/offlineRoomService';
 import { isSupabaseConfigured } from './network/supabase';
 import { watchScoreboard } from './network/supabaseScoreboard';
 import { createSupabaseRooms } from './network/supabaseRooms';
@@ -24,9 +24,9 @@ import { mountScoreboard } from './ui/scoreboard';
 const params = new URLSearchParams(window.location.search);
 const soloSeed = Number(params.get('seed')) || 20261017;
 
-// Online rooms when client/.env.local has the Supabase keys; local test rooms without them, or with ?local.
+// Online rooms when client/.env.local has the Supabase keys; offline rooms without them, or with ?local.
 const online = isSupabaseConfigured() && !params.has('local') ? createSupabaseRooms() : null;
-const rooms: RoomApi = online ?? createLocalRooms();
+const rooms: RoomApi = online ?? new OfflineRoomService();
 let stopScoreboard: (() => void) | null = null;
 
 const game = new Game({
