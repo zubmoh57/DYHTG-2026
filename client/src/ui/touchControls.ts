@@ -60,19 +60,21 @@ export function mountTouchControls(root: HTMLElement, game: Game): void {
   const pad = el('div', { className: 'touch-controls' }, [left, right, fire]);
 
   let shownFor: string | null = null;
-  game.onFrame(({ run, inputMode }) => {
+  game.onFrame(({ run, inputMode, waitingForInstructions }) => {
     const inRun = IN_RUN.has(run.stage);
     if (inRun !== pad.isConnected) {
       if (inRun) root.appendChild(pad);
       else pad.remove();
     }
-    const key = `${inRun}:${inputMode}`;
+    const key = `${inRun}:${inputMode}:${waitingForInstructions}`;
     if (key === shownFor) return;
     shownFor = key;
     const mode: InputMode = inRun ? inputMode : 'none';
     // Lanes buttons stay visible (dimmed) between lane sections so thumbs know where they are.
-    left.classList.toggle('hidden', mode === 'timing');
-    right.classList.toggle('hidden', mode === 'timing');
-    fire.classList.toggle('hidden', mode !== 'timing');
+    left.classList.toggle('hidden', mode === 'timing' || waitingForInstructions);
+    right.classList.toggle('hidden', mode === 'timing' || waitingForInstructions);
+    // The same Space button acknowledges the instructions before gameplay starts.
+    fire.innerHTML = waitingForInstructions ? 'Continue' : SCOPE;
+    fire.classList.toggle('hidden', mode !== 'timing' && !waitingForInstructions);
   });
 }

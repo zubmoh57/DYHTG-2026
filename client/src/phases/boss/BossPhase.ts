@@ -80,6 +80,7 @@ interface Bullet {
 export function createBossPhase(): PhaseFactory {
   return (ctx: PhaseContext): Phase => {
     const power = powerUpFor(ctx.run.coins);
+    const reactionRandom = ctx.rng('boss');
     const sim = createBoss({
       readyMs: R.readySec * 1000,
       aimMs: R.aimSec * 1000,
@@ -381,7 +382,12 @@ export function createBossPhase(): PhaseFactory {
             }
           }
 
-          if (beginBossReload(sim)) {
+          // Sample once per cleared volley, so frame rate cannot change the random wait.
+          const volleyCleared = sim.shotsFired === CONFIG.boss.shotsPerVolley
+            && sim.activeProjectiles.length === 0;
+          if (volleyCleared && beginBossReload(sim, 1000 * (
+            R.fireDelayMinSec + reactionRandom.next() * (R.fireDelayMaxSec - R.fireDelayMinSec)
+          ))) {
             ctx.requestInputMode('timing'); // Space only; the duck can't move now
             ctx.bill.setPose('idle');
             pigeon.setWindUp(0);

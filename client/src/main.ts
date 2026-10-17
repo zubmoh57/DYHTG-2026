@@ -10,6 +10,7 @@
 //   /?local             force the offline test rooms even with Supabase keys
 
 import './ui/ui.css';
+import './ui/stageInstructions.css';
 import { mountAudio } from './audio';
 import { Game } from './core/Game';
 import { raceScore } from './core/RunState';
@@ -27,6 +28,7 @@ import { mountLobby } from './ui/lobby';
 import { mountRaceResults } from './ui/raceResults';
 import { mountResults } from './ui/results';
 import { mountScoreboard } from './ui/scoreboard';
+import { mountStageInstructions } from './ui/stageInstructions';
 import { mountTouchControls } from './ui/touchControls';
 
 const params = new URLSearchParams(window.location.search);
@@ -47,6 +49,7 @@ const game = new Game({
 const ui = document.getElementById('ui')!;
 mountHud(ui, game);
 mountCountdown(ui, game);
+mountStageInstructions(ui, game);
 mountTouchControls(ui, game);
 const audio = mountAudio(ui, game);
 mountEndings(ui, game, audio);

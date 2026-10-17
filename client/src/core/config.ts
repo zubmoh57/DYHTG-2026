@@ -48,11 +48,14 @@ export const CONFIG = {
     /**
      * Reaction attack: Ready → Aim → Fire (green), decided by Zubair's sim/boss.ts.
      * Agreed: early press or Space held at Fire = 1 damage (that lives in sim/boss.ts).
-     * Every number below is UNDECIDED (GAME_BRIEF "Decisions needed") and only feeds the sim's rules.
+     * Ready/Aim last one second each, followed by a random wait before Fire.
+     * The wait range is tuning; the damage curve and no-response outcome remain UNDECIDED.
      */
     reaction: {
-      readySec: 0.45,
-      aimSec: 0.45,
+      readySec: 1,
+      aimSec: 1,
+      fireDelayMinSec: 0.25,
+      fireDelayMaxSec: 1.5,
       fireWindowSec: 1.0,
       maxDamage: 10000, // at a 0 ms reaction
       minDamage: 1000, // at the end of the fire window

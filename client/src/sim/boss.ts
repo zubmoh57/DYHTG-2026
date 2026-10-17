@@ -21,6 +21,7 @@ export interface BossState {
   nextProjectileId: number;
   activeProjectiles: number[];
   reloadElapsedMs: number;
+  fireDelayMs: number;
   attackResult: BossAttackResult | null;
 }
 
@@ -32,7 +33,7 @@ export function createBoss(rules: Readonly<BossRules>): BossState {
   }
   return {
     phase: 'volley', hp: 30_000, rules: { ...rules }, shotsFired: 0,
-    nextProjectileId: 1, activeProjectiles: [], reloadElapsedMs: 0, attackResult: null,
+    nextProjectileId: 1, activeProjectiles: [], reloadElapsedMs: 0, fireDelayMs: 0, attackResult: null,
   };
 }
 
@@ -53,11 +54,15 @@ export function resolveBossProjectile(state: BossState, id: number): boolean {
   return true;
 }
 
-export function beginBossReload(state: BossState): boolean {
+export function beginBossReload(state: BossState, fireDelayMs = 0): boolean {
   if (state.phase !== 'volley' || state.shotsFired !== 3
     || state.activeProjectiles.length !== 0) return false;
+  if (!Number.isFinite(fireDelayMs) || fireDelayMs < 0) {
+    throw new RangeError('Fire delay must be non-negative and finite.');
+  }
   state.phase = 'reload';
   state.reloadElapsedMs = 0;
+  state.fireDelayMs = fireDelayMs;
   state.attackResult = null;
   return true;
 }
@@ -65,7 +70,7 @@ export function beginBossReload(state: BossState): boolean {
 export function getBossPrompt(state: BossState): 'ready' | 'aim' | 'fire' | null {
   if (state.phase !== 'reload' || state.attackResult) return null;
   if (state.reloadElapsedMs < state.rules.readyMs) return 'ready';
-  if (state.reloadElapsedMs < state.rules.readyMs + state.rules.aimMs) return 'aim';
+  if (state.reloadElapsedMs < state.rules.readyMs + state.rules.aimMs + state.fireDelayMs) return 'aim';
   return 'fire';
 }
 
@@ -88,7 +93,7 @@ export function advanceBossReload(
     throw new RangeError('Elapsed time must be non-negative and finite.');
   }
   if (state.phase !== 'reload' || state.attackResult) return null;
-  const fireAtMs = state.rules.readyMs + state.rules.aimMs;
+  const fireAtMs = state.rules.readyMs + state.rules.aimMs + state.fireDelayMs;
   const expiryMs = fireAtMs + state.rules.fireMs;
   const wasBeforeFire = state.reloadElapsedMs < fireAtMs;
   state.reloadElapsedMs = Math.min(expiryMs, state.reloadElapsedMs + deltaMs);
@@ -106,7 +111,7 @@ export function advanceBossReload(
 // Call only for a fresh Space press. Repeats/held keys are filtered by input routing.
 export function pressBossAttack(state: BossState): BossAttackResult | null {
   if (state.phase !== 'reload' || state.attackResult) return null;
-  const fireAtMs = state.rules.readyMs + state.rules.aimMs;
+  const fireAtMs = state.rules.readyMs + state.rules.aimMs + state.fireDelayMs;
   if (state.reloadElapsedMs < fireAtMs) {
     return resolveAttack(state, { reason: 'early', reactionMs: null, damage: 1 });
   }
@@ -121,6 +126,7 @@ export function beginNextBossVolley(state: BossState): boolean {
   state.phase = 'volley';
   state.shotsFired = 0;
   state.reloadElapsedMs = 0;
+  state.fireDelayMs = 0;
   state.attackResult = null;
   return true;
 }
