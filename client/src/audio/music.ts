@@ -12,6 +12,8 @@ export interface Drums {
   ghost?: string;
   hat?: string;
   openHat?: string;
+  /** Deep war drum. */
+  tom?: string;
 }
 
 export interface Track {
@@ -20,6 +22,8 @@ export interface Track {
   swing: number;
   /** 16th-note steps. Each array loops on its own length; null = rest. */
   bass: (number | null)[];
+  /** Optional sustained sub note (MIDI) held for a bar, for menace. */
+  drone?: (number | null)[];
   /** Short staccato bass, filtered like a slap/synth bass. */
   bassCutoff: number;
   lead: (number | null)[];
@@ -45,9 +49,7 @@ const Ab = [60, 63, 68];
 const Gm = [58, 62, 67];
 const DmPad = [62, 65, 69];
 const CsDim = [61, 64, 67];
-const Dm9 = [60, 64, 65, 69];
-const Bb9 = [60, 62, 65, 68];
-const A7s9 = [61, 67, 72];
+const EbPad = [63, 67, 70];
 
 export const TRACKS: Record<MusicTrack, Track> = {
   // Lobby: a lazy E dorian vamp to bob your head to while everyone joins.
@@ -143,33 +145,40 @@ export const TRACKS: Record<MusicTrack, Track> = {
     },
     cutoff: 1800,
   },
-  // Boss: fast, tense D minor funk: slap bass, sharp-nine stabs, busy hats for Don Crumb.
+  // Boss: do or die. A halftime D phrygian march: low drone, war drums, a dark choir and a tritone hook.
   boss: {
-    bpm: 132,
-    swing: 0.08,
+    bpm: 128,
+    swing: 0,
     bass: [
-      38, _, 50, 38, _, 38, 50, _, 41, _, 53, 41, 40, _, 39, _,
-      38, _, 50, 38, _, 38, 50, _, 34, _, 46, 34, 33, _, 45, _,
+      38, _, _, _, _, _, 38, _, 39, _, _, _, 38, _, _, _,
+      38, _, _, _, _, _, 38, _, 44, _, _, _, 43, _, 42, _,
     ],
-    bassCutoff: 1500,
+    bassCutoff: 900,
+    drone: [26, ...Array(15).fill(_), 27, ...Array(15).fill(_)],
     lead: [
-      _, _, _, _, 74, _, 77, _, 79, _, 80, 79, 77, _, 74, _,
-      _, _, _, _, 74, _, 77, _, 81, _, 80, 77, 76, _, 73, _,
+      62, _, _, 63, _, _, 62, _, _, _, _, _, 68, _, _, _,
+      62, _, _, 63, _, _, 62, _, _, _, _, _, 69, _, 67, _,
     ],
     leadType: 'sawtooth',
     chords: [
-      _, _, _, Dm9, _, _, Dm9, _, _, _, _, Dm9, _, _, Dm9, _,
-      _, _, _, Bb9, _, _, Bb9, _, _, _, _, A7s9, _, _, A7s9, _,
+      DmPad, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+      EbPad, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
     ],
-    chordLen: 0.5,
+    chordLen: 14,
     drums: {
-      kick: 'x--x--x---x--x--',
-      snare: '----x-------x---',
-      ghost: '-------x-x----x-',
-      hat: 'xxxxxxxxxxxxxx-x',
-      openHat: '--------------x-',
+      kick: 'x-----x---x-----',
+      snare: '--------x-------',
+      tom: '----x--------x-x',
+      hat: '--x---x---x---x-',
     },
-    cutoff: 6000,
+    // Don Crumb is nearly down: everything doubles up.
+    tense: {
+      kick: 'x-x-x-x-x-x-x-x-',
+      snare: '------------xxxx',
+      tom: 'x---x---x---x---',
+      hat: 'xxxxxxxxxxxxxxxx',
+    },
+    cutoff: 4000,
   },
 };
 
@@ -269,6 +278,14 @@ export class Music {
       s.tone({ freq: midiToFreq(bass), type: 'sine', at, dur: stepSec * 1.3, gain: 0.28, dest });
     }
 
+    const drone = def.drone?.[i % def.drone.length];
+    if (drone != null) {
+      for (const detune of [-12, 12]) {
+        s.tone({ freq: midiToFreq(drone), type: 'sawtooth', at, detune, dur: stepSec * 16, gain: 0.12, attack: 0.4,
+          filter: { type: 'lowpass', freq: 380, q: 2 }, dest });
+      }
+    }
+
     const chord = def.chords[i % def.chords.length];
     if (chord) {
       const long = def.chordLen > 1;
@@ -302,6 +319,10 @@ export class Music {
     if (hits(d.snare, i)) {
       s.noise({ at, dur: 0.14, gain: 0.28, filter: { type: 'highpass', freq: 1400 }, dest });
       s.tone({ freq: 190, to: 130, at, dur: 0.08, gain: 0.2, dest });
+    }
+    if (hits(d.tom, i)) {
+      s.tone({ freq: 110, to: 52, at, dur: 0.4, gain: 0.55, dest });
+      s.noise({ at, dur: 0.12, gain: 0.2, filter: { type: 'lowpass', freq: 450 }, dest });
     }
     if (hits(d.ghost, i)) s.noise({ at, dur: 0.05, gain: 0.07, filter: { type: 'highpass', freq: 1800 }, dest });
     if (hits(d.hat, i)) s.noise({ at, dur: 0.03, gain: 0.08, filter: { type: 'highpass', freq: 7500 }, dest });

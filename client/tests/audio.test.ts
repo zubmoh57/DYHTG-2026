@@ -60,8 +60,8 @@ describe('audio sound map', () => {
 
   it('has a well-formed loop for every track', () => {
     for (const track of Object.values(TRACKS)) {
-      for (const lane of [track.bass, track.lead, track.chords]) expect(lane.length % 16).toBe(0);
-      for (const lane of Object.values(track.drums)) expect(lane).toMatch(/^[x-]{16}$/);
+      for (const lane of [track.bass, track.lead, track.chords, track.drone ?? []]) expect(lane.length % 16).toBe(0);
+      for (const lane of [...Object.values(track.drums), ...Object.values(track.tense ?? {})]) expect(lane).toMatch(/^[x-]{16}$/);
       const notes = [...track.bass, ...track.lead, ...track.chords.flat()].filter((n) => n !== null);
       for (const n of notes) expect(n).toBeGreaterThanOrEqual(24);
       expect(track.swing).toBeLessThan(0.5);
