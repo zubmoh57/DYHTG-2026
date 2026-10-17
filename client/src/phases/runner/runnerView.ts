@@ -1,11 +1,11 @@
-// Runner visuals (Tejas): the forest river, natural branches, bread slices, the heart and splashes.
+// Runner visuals (Tejas): the forest road, natural branches, bread slices, the heart and splashes.
 // Render-only. Collision uses lanes and distances from the course, never these meshes.
 // Cosmetic randomness uses Math.random() on purpose: it must not touch the seeded gameplay RNG.
 
 import * as THREE from 'three';
 import { CONFIG } from '../../core/config';
 import type { Lane } from '../../course/types';
-import { ForestRiver } from '../../render/forest';
+import { ForestRoad } from '../../render/forest';
 import { taperedLimb } from '../../render/shapes';
 import { barkTexture, crumbTexture, leafTexture } from '../../render/textures';
 
@@ -14,7 +14,7 @@ const LANE_WIDTH = 2.5;
 
 /** The world the runners (and the boss arena) take place in. */
 export class RunnerWorld {
-  private readonly forest = new ForestRiver();
+  private readonly forest = new ForestRoad();
   readonly group = this.forest.group;
 
   /** Move the world towards the camera by `step` units. */

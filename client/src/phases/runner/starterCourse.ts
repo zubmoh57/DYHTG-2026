@@ -125,7 +125,7 @@ export interface ReachabilityOptions {
 }
 
 export const DEFAULT_REACHABILITY: ReachabilityOptions = {
-  maxSpeed: CONFIG.runner.maxSpeed,
+  maxSpeed: CONFIG.runner.runner2MaxSpeed, // the fastest stage (boosted Bill smashes branches instead)
   laneChangeSec: CONFIG.runner.laneChangeSec,
   reactionSec: 0.35,
 };

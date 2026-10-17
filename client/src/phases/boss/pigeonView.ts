@@ -64,6 +64,15 @@ export class PigeonView {
   /** Turns to aim; everything but the crate hangs off it. */
   private readonly body = new THREE.Group();
   private readonly headGroup = new THREE.Group();
+  /** Shoulder pivots, so the wings can flap when he swoops in. */
+  private readonly wings: THREE.Group[] = [];
+  private flap = 0;
+  /** Landing squash: 1 on touchdown, springing back to 0. */
+  private squash = 0;
+  private sinceLanding = 0;
+  /** Where the body is relative to its spot on the crate while it flies in (0 once landed). */
+  private readonly flight = new THREE.Vector3();
+  private bank = 0;
   private readonly gun = new THREE.Group();
   private readonly muzzle: THREE.Mesh;
   private readonly flashLight = new THREE.PointLight(0xffb347, 0, 8);
@@ -233,18 +242,22 @@ export class PigeonView {
     }
     this.feathers.visible = false;
 
-    // Wings and pink legs.
+    // Wings (on shoulder pivots so they can flap) and pink legs.
     for (const side of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 1.0, 2.55, -0.05);
       const wing = new THREE.Mesh(new THREE.SphereGeometry(0.8, 28, 20), suit);
       wing.scale.set(0.38, 1, 0.9);
-      wing.position.set(side * 1.25, 1.9, -0.05);
+      wing.position.set(side * 0.25, -0.65, 0);
       wing.rotation.z = side * 0.25;
+      pivot.add(wing);
+      this.wings.push(pivot);
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.7, 10), std(0xd98a8a));
       leg.position.set(side * 0.45, 0.4, 0.1);
       const foot = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.3, 4, 10), std(0xd98a8a));
       foot.rotation.x = Math.PI / 2;
       foot.position.set(side * 0.45, 0.06, 0.28);
-      this.body.add(wing, leg, foot);
+      this.body.add(pivot, leg, foot);
     }
 
     // Tommy gun: finned barrel, drum magazine, wooden grip and stock. Points at the duck (+Z).
@@ -295,6 +308,11 @@ export class PigeonView {
     });
   }
 
+  /** World position of his face: where Bill's laser lands. */
+  faceWorld(target: THREE.Vector3): THREE.Vector3 {
+    return this.headGroup.getWorldPosition(target);
+  }
+
   /** World position of the gun's muzzle, where bullets start. */
   muzzleWorld(target: THREE.Vector3): THREE.Vector3 {
     return this.muzzle.getWorldPosition(target);
@@ -335,6 +353,23 @@ export class PigeonView {
     this.stars.visible = this.mood === 'wrecked';
     this.hat.visible = this.mood !== 'wrecked'; // knocked clean off
     this.hatCrown.scale.y = battered ? 0.75 : 1; // dented
+  }
+
+  /** 0..1: how hard the wings flap (swooping in). */
+  setFlap(amount: number): void {
+    this.flap = amount;
+  }
+
+  /** Offset from the crate while flying in, and how much he banks into the turn. */
+  setFlight(offset: THREE.Vector3, bank: number): void {
+    this.flight.copy(offset);
+    this.bank = bank;
+  }
+
+  /** Touchdown: a squash that springs back. */
+  land(): void {
+    this.squash = 1;
+    this.sinceLanding = 0;
   }
 
   defeat(): void {
@@ -402,9 +437,19 @@ export class PigeonView {
       s.position.set(Math.cos(a) * 0.7, Math.sin(this.time * 6 + i) * 0.08, Math.sin(a) * 0.7);
     });
     this.sweat.position.y = 0.25 - ((this.time * 0.6) % 1) * 0.5;
-    this.body.position.y = Math.sin(this.time * 2.2) * 0.06;
-    this.body.position.z = -this.flinch * 0.6;
-    this.body.rotation.x = -this.flinch * 0.35;
+    // Wings: flap while flying, then settle at his sides.
+    this.wings.forEach((w, i) => {
+      const side = i === 0 ? -1 : 1;
+      w.rotation.z = side * this.flap * (0.7 + 0.8 * Math.sin(this.time * 22));
+    });
+    // Landing squash and spring (wide and short, then a little bounce).
+    this.sinceLanding += dt;
+    this.squash *= Math.exp(-5 * dt);
+    const sq = this.squash * Math.cos(this.sinceLanding * 16);
+    this.body.scale.set(1 + 0.16 * sq, 1 - 0.22 * sq, 1 + 0.16 * sq);
+    this.body.position.set(this.flight.x, Math.sin(this.time * 2.2) * 0.06 + this.flight.y, -this.flinch * 0.6 + this.flight.z);
+    this.body.rotation.x = -this.flinch * 0.35 - Math.min(0.5, this.flight.length() * 0.04); // leans into the dive
+    this.body.rotation.z = this.bank;
     this.headGroup.rotation.z = Math.sin(this.time * 30) * 0.06 * this.rage + (this.mood === 'wrecked' ? Math.sin(this.time * 2) * 0.15 : 0);
 
     if (this.fallT >= 0) {
@@ -415,7 +460,7 @@ export class PigeonView {
   }
 }
 
-// --- Bullets, the laser and the shield -------------------------------------------------------------
+// --- Bullets -------------------------------------------------------------------------------------
 
 /** A brass bullet with a glowing tracer behind it. It flies along its local +Z. */
 export function makeBullet(): THREE.Group {
@@ -436,56 +481,4 @@ export function makeBullet(): THREE.Group {
   group.add(body, tip, tracer);
   group.scale.setScalar(1.5);
   return group;
-}
-
-/** Bill's laser: a bright beam that fades out. */
-export class Laser {
-  readonly mesh: THREE.Mesh;
-  private life = 0;
-
-  constructor() {
-    this.mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.12, 1, 16, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0xff3ea5, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
-    );
-    this.mesh.visible = false;
-  }
-
-  fire(from: THREE.Vector3, to: THREE.Vector3): void {
-    const mid = from.clone().add(to).multiplyScalar(0.5);
-    const length = from.distanceTo(to);
-    this.mesh.position.copy(mid);
-    this.mesh.scale.set(1, length, 1);
-    this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize());
-    this.mesh.visible = true;
-    this.life = 0.4;
-  }
-
-  update(dt: number): void {
-    if (!this.mesh.visible) return;
-    this.life -= dt;
-    const m = this.mesh.material as THREE.MeshBasicMaterial;
-    m.opacity = Math.max(0, this.life / 0.4);
-    this.mesh.scale.x = this.mesh.scale.z = 0.6 + m.opacity * 2;
-    if (this.life <= 0) this.mesh.visible = false;
-  }
-}
-
-/** The 20-coin shield: a shimmering bubble round Bill that bullets bounce off. */
-export function makeShield(): THREE.Mesh {
-  const shield = new THREE.Mesh(
-    new THREE.SphereGeometry(1.25, 40, 28),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x7fdcff,
-      emissive: 0x2fb8ff,
-      emissiveIntensity: 0.5,
-      roughness: 0.05,
-      clearcoat: 1,
-      transparent: true,
-      opacity: 0.28,
-      depthWrite: false,
-    }),
-  );
-  shield.position.y = 1;
-  return shield;
 }

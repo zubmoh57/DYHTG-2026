@@ -67,7 +67,7 @@ export function mountHud(root: HTMLElement, game: Game): void {
   const bossFill = el('div', { className: 'boss-fill' });
   const bossHp = el('span');
   const boss = el('div', { className: 'boss' }, [
-    el('div', { className: 'boss-name' }, ['🎩 THE DON PIGEON ', bossHp]),
+    el('div', { className: 'boss-name' }, ['🎩 DON CRUMBS ', bossHp]),
     el('div', { className: 'boss-bar' }, [bossFill]),
   ]);
   const hud = el('div', { className: 'hud' }, [
@@ -100,7 +100,8 @@ export function mountHud(root: HTMLElement, game: Game): void {
     const afterSwim = run.stage === 'SURFACE_RETURN' || run.stage === 'RUNNER_2' || run.stage === 'BOSS';
     set(coins, swimming || afterSwim ? `🪙 ${run.coins}` : '');
     coinTrack.show(swimming, run.coins);
-    set(power, afterSwim ? POWER_LABEL[powerUpFor(run.coins)] : '');
+    // The boss arena shows its power-up in the scene (shield, red eyes), so the label stays out of the way there.
+    set(power, afterSwim && run.stage !== 'BOSS' ? POWER_LABEL[powerUpFor(run.coins)] : '');
     set(stage, run.stage);
     set(time, formatTime(run.elapsedMs));
     set(score, `${run.score.toLocaleString()} pts`);
