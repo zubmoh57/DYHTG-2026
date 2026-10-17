@@ -2,6 +2,8 @@
 
 This addendum supplements the original **Dollar Duck — team implementation brief**. The game is now called **Duck Run**. Where this document changes a rule, follow this document; all other confirmed mechanics in the original brief remain in effect.
 
+The original confirmed rules and these updates are now consolidated in [docs/GAME_BRIEF.md](docs/GAME_BRIEF.md). Current ownership is recorded in [docs/TEAM_SPLIT.md](docs/TEAM_SPLIT.md). Read these together; the older Two Keys design is superseded.
+
 This is design context for the team and their AI coding assistants, not an instruction to begin implementation. Do not invent missing rules or treat suggestions as confirmed requirements.
 
 ## 1. Boss attack: reaction timing during reload
@@ -67,4 +69,4 @@ Do not invent a scoring breakdown and present it as approved. The score cap is c
 
 The team intends to add further details later. Preserve the original runner, submarine, oxygen, heart, lives, and transition rules unless explicitly updated.
 
-The technology stack, task assignments, room/multiplayer behaviour, persistence, retry flow, assets, and numeric tuning not specified in the original brief remain open. Ask focused questions when those decisions become necessary; do not assume they have already been agreed.
+Task assignments are now recorded in [docs/TEAM_SPLIT.md](docs/TEAM_SPLIT.md), including Zubair's underwater, transitions, and boss ownership, and Mayank's Supabase setup. The merged client contains a TypeScript/Vite/Three.js setup and Bill character assets. Remaining technical contracts, room/multiplayer behaviour, persistence, retry flow, further assets, and unspecified numeric tuning remain open. Ask focused questions when those decisions become necessary; do not assume they have already been agreed.
