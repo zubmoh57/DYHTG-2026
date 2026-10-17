@@ -22,6 +22,7 @@ import {
 } from './RunState';
 import { createRandom, deriveSeed } from './seededRandom';
 import type {
+  DamageCause,
   FailReason,
   GameEvent,
   InputMode,
@@ -306,8 +307,8 @@ export class Game {
     this.afterFail();
   }
 
-  private afterFail(): void {
-    this.emit({ type: 'runFailed', reason: this.state.failReason!, elapsedMs: this.state.elapsedMs });
+  private afterFail(cause?: DamageCause): void {
+    this.emit({ type: 'runFailed', reason: this.state.failReason!, elapsedMs: this.state.elapsedMs, cause });
     this.requestStage('FAILED');
   }
 
@@ -347,13 +348,13 @@ export class Game {
         }
         game.setInputMode(mode);
       },
-      damagePlayer() {
+      damagePlayer(cause) {
         if (!live()) return false;
         game.stopClock();
         const result = applyDamage(state, performance.now());
         if (result === 'ignored') return false;
-        game.emit({ type: 'damaged', lives: state.lives });
-        if (result === 'dead') game.afterFail();
+        game.emit({ type: 'damaged', lives: state.lives, cause });
+        if (result === 'dead') game.afterFail(cause);
         return true;
       },
       addScore(points) {

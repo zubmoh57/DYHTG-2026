@@ -111,7 +111,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
         particles.burst(lanes.x, 0.8, -0.3, 10, { color: 0xffd23f, speed: 6, up: 4, life: 0.4, size: 0.8 });
         return;
       }
-      if (!ctx.damagePlayer()) return; // still invulnerable: no life lost, no slowdown
+      if (!ctx.damagePlayer('log')) return; // still invulnerable: no life lost, no slowdown
       if (dog) {
         // Stumble once and the dog catches up; stumble again while it's on you and it bites.
         if (dogMode === 'close') {
@@ -290,7 +290,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
             biteIn -= dt;
             dog.setLunge(Math.max(0, 1 - biteIn / DOG.biteDelaySec));
             if (biteIn <= 0) {
-              if (ctx.damagePlayer()) {
+              if (ctx.damagePlayer('dog')) {
                 ctx.emit({ type: 'cue', name: 'bite' });
                 ctx.bill.setPose('hit');
                 rig.addTrauma(0.6);

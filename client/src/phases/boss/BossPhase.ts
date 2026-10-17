@@ -368,7 +368,7 @@ export function createBossPhase(): PhaseFactory {
               particles.burst(lanes.x, 1.2, 0.8, 10, { color: 0x9fe8ff, speed: 5, up: 3, life: 0.4 });
               continue;
             }
-            if (hits && ctx.damagePlayer()) {
+            if (hits && ctx.damagePlayer('boss')) {
               ctx.bill.setPose('hit');
               rig.addTrauma(0.5);
               particles.burst(lanes.x, 1, 0, 12, { color: 0xffa040, speed: 4, up: 3, life: 0.5 });

@@ -28,6 +28,9 @@ export type InputMode = 'none' | 'lanes' | 'timing';
 
 export type FailReason = 'lives';
 
+/** What took Bill's life, so the ending can show how he went out. */
+export type DamageCause = 'log' | 'dog' | 'boss';
+
 /** What the coins from the swim buy: the best one you can afford, automatically (DESIGN_CHANGES.md). */
 export type PowerUp = 'none' | 'shield' | 'boost' | 'laser';
 
@@ -75,13 +78,13 @@ export type GameEvent =
   | { type: 'stageChanged'; stage: Stage; previous: Stage }
   | { type: 'attemptStarted'; attemptId: string }
   | { type: 'inputModeChanged'; mode: InputMode }
-  | { type: 'damaged'; lives: number }
+  | { type: 'damaged'; lives: number; cause?: DamageCause }
   | { type: 'lifeGained'; lives: number }
   | { type: 'coinsChanged'; coins: number; delta: number }
   | { type: 'scoreChanged'; score: number; delta: number }
   | { type: 'bossDamaged'; damage: number; health: number }
   | { type: 'runFinished'; elapsedMs: number; score: number }
-  | { type: 'runFailed'; reason: FailReason; elapsedMs: number }
+  | { type: 'runFailed'; reason: FailReason; elapsedMs: number; cause?: DamageCause }
   /** Phase-specific moments for sound and effects, e.g. 'laneChange', 'boost', 'perfect', 'shot'. */
   | { type: 'cue'; name: string };
 
@@ -102,7 +105,7 @@ export interface PhaseContext {
 
   requestInputMode(mode: InputMode): void;
   /** Returns false (and does nothing) while invulnerable. Fails the run at 0 lives. */
-  damagePlayer(): boolean;
+  damagePlayer(cause?: DamageCause): boolean;
   addScore(points: number): void;
   /** Coins can go up (pickups) or down (hits underwater), never below 0. */
   addCoins(delta: number): void;
