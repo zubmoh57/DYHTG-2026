@@ -149,7 +149,7 @@ export const SCENES = {
     <path d="M60 225 L90 120 L120 225Z" fill="#0e7a55" class="sway"/>
     <path d="M300 225 L320 110 L345 225Z" fill="#0e7a55" class="sway"/>
     ${[120, 160, 200, 240, 280, 180, 220].map((cx, i) => `<g class="glint" style="animation-delay:${i * 0.2}s"><circle cx="${cx}" cy="${190 - (i % 3) * 8}" r="10" fill="${C.gold}"/><text x="${cx}" y="${195 - (i % 3) * 8}" text-anchor="middle" font-size="11" font-weight="900" fill="#b8860b" font-family="Arial">$</text></g>`).join('')}
-    ${[40, 100, 330, 370].map((cx, i) => `<circle class="bubble" style="animation-delay:${i * 0.7}s" cx="${cx}" cy="200" r="${4 + (i % 2) * 3}" fill="none" stroke="#bfe8ff" stroke-width="1.5"/>`).join('')}
+    ${[40, 100, 330, 370].map((cx, i) => `<circle class="air" style="animation-delay:${i * 0.7}s" cx="${cx}" cy="200" r="${4 + (i % 2) * 3}" fill="none" stroke="#bfe8ff" stroke-width="1.5"/>`).join('')}
     <g class="swim">${bill(80, 120, 0.5, 'cool')}</g>`),
 
   hook: svg(`${sky('#0b5f84', '#032338', 'g6')}
