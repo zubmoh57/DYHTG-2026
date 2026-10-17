@@ -111,7 +111,9 @@ export function createSwimPhase(length: number): PhaseFactory {
         lanes.update(dt);
 
         invulnerable = Math.max(0, invulnerable - dt);
-        speed += (CONFIG.swim.speed - speed) * Math.min(1, dt * 1.2); // recover after a hit
+        // Picks up pace through the swim (harder near the end), and recovers after a hit.
+        const target = CONFIG.swim.speed * (1 + 0.18 * (distance / course.length));
+        speed += (target - speed) * Math.min(1, dt * 1.2);
         const previous = distance;
         const step = speed * dt;
         distance = Math.min(course.length, distance + step);

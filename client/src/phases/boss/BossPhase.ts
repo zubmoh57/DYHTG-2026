@@ -1,6 +1,8 @@
 // The mafia pigeon boss (Tejas renders; Zubair's sim/boss.ts decides). Dodge three aimed shots with
 // A/D, then react to Ready → Aim → green FIRE with Space for the laser (GAME_BRIEF §6, ZUBAIR_BASE.md).
 // Swim power-ups apply here: a 5 s shield at the start, or the laser hitting 50% harder.
+// It opens with an intro: Bill skids to a stop, Don Crumbs swoops down onto his crate, and his
+// name card and taunt play in letterbox before the fight starts.
 
 import * as THREE from 'three';
 import { CONFIG } from '../../core/config';
@@ -8,6 +10,7 @@ import { LaneMover } from '../../core/LaneMover';
 import { powerUpFor } from '../../core/RunState';
 import type { Phase, PhaseContext, PhaseFactory } from '../../core/types';
 import { disposeObject } from '../../render/dispose';
+import { FloatingText, LaserBeam, LaserEyes, Shockwave, ShieldView } from '../../render/effects';
 import { showToast } from '../../ui/toast';
 import {
   advanceBossReload,
@@ -22,10 +25,36 @@ import {
 } from '../../sim/boss';
 import { CameraRig } from '../runner/cameraRig';
 import { Particles, RunnerWorld } from '../runner/runnerView';
-import { Laser, PigeonView, makeBullet, makeShield } from './pigeonView';
+import { PigeonView, makeBullet } from './pigeonView';
 
 const PIGEON_Z = -17;
-const RESULT_SEC = 1.1;
+const RESULT_SEC = 0.75;
+/** A reaction this fast counts as PERFECT: bigger beam, bigger boom. */
+const PERFECT_MS = 220;
+
+/** The intro's beats, in seconds. */
+const INTRO = {
+  stopBy: 0.9, // Bill has skidded to a halt
+  flyFrom: 0.3,
+  landAt: 1.75,
+  cardAt: 1.95,
+  tauntAt: 2.35,
+  outAt: 3.75,
+  end: 4.25,
+};
+const TAUNT = "You're going down, birdie!";
+
+const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+const span = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+/** The swoop: a curve from high in the sky, down past the camera's side, onto the crate. */
+const SWOOP = new THREE.CubicBezierCurve3(
+  new THREE.Vector3(-16, 20, -14),
+  new THREE.Vector3(-9, 12, -2),
+  new THREE.Vector3(4, 5, 2),
+  new THREE.Vector3(0, 0, 0),
+);
 const R = CONFIG.boss.reaction;
 
 /**
@@ -61,15 +90,39 @@ export function createBossPhase(): PhaseFactory {
     const root = new THREE.Group();
     const world = new RunnerWorld();
     const pigeon = new PigeonView();
-    const laser = new Laser();
+    const laser = new LaserBeam();
+    const shockwave = new Shockwave();
+    const damageText = new FloatingText();
+    const laserEyes = power === 'laser' ? new LaserEyes() : null;
+    let hitStop = 0;
     const particles = new Particles(70);
     const rig = new CameraRig(ctx.defaultCamera);
     const lanes = new LaneMover();
     const bullets: Bullet[] = [];
     const prompt = document.createElement('div');
     prompt.className = 'reaction';
-    const shield = makeShield();
+    const shield = new ShieldView();
     let shieldT = power === 'shield' ? CONFIG.powerUps.shieldSec : 0;
+
+    // The intro's on-screen pieces: letterbox bars, the name card and the speech bubble.
+    const letterbox = document.createElement('div');
+    letterbox.className = 'letterbox';
+    const card = document.createElement('div');
+    card.className = 'boss-card';
+    card.innerHTML = '<small>THE MAFIA PIGEON</small><strong>DON CRUMBS</strong>';
+    const speech = document.createElement('div');
+    speech.className = 'speech';
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 32),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    let introT = 0;
+    let intro = true;
+    let landed = false;
+    let carded = false;
+    const gameplayCam = { pos: new THREE.Vector3(0, 3.4, 6.5), look: new THREE.Vector3(0, 1, -8) };
+    const dramaticCam = { pos: new THREE.Vector3(0.8, 1.9, 3.2), look: new THREE.Vector3(0, 4.4, PIGEON_Z) };
 
     let volleyT = 0; // seconds since this volley started
     let resultT = -1; // seconds the last attack result has been on screen
@@ -88,15 +141,22 @@ export function createBossPhase(): PhaseFactory {
       ctx.requestInputMode('none');
       if (result.damage > 0) ctx.damageBoss(result.damage); // mirror the sim's HP once, never subtract twice
       if (result.reason === 'reaction') {
-        const from = ctx.bill.object.position.clone().add(new THREE.Vector3(0, 1.45, -0.4));
-        const to = pigeon.root.position.clone().add(new THREE.Vector3(0, 3.2, 0));
-        laser.fire(from, to);
+        const perfect = (result.reactionMs ?? 999) <= PERFECT_MS;
+        const boosted = power === 'laser';
+        // From Bill's beak to the Don's face.
+        const from = ctx.bill.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, -0.05, -0.3));
+        const to = pigeon.faceWorld(new THREE.Vector3());
+        laser.fire(from, to, boosted);
+        shockwave.play(to.clone().add(new THREE.Vector3(0, 0, 1.2)), boosted ? 0xffb347 : 0xff7ad1, perfect || boosted);
+        damageText.show(perfect ? `PERFECT! -${result.damage.toLocaleString()}` : `-${result.damage.toLocaleString()}`, to.clone().add(new THREE.Vector3(0, 1.6, 2)), perfect ? '#ffe14d' : '#ffffff');
+        hitStop = perfect ? 0.12 : 0.07;
         pigeon.hit();
         pigeon.setHealth(sim.hp / CONFIG.boss.health);
-        rig.addTrauma(0.35);
+        rig.addTrauma(perfect ? 0.7 : 0.45);
         ctx.bill.setPose('attack');
-        ctx.emit({ type: 'cue', name: 'laser' });
-        particles.burst(to.x, to.y, to.z + 0.8, 18, { color: 0xb8bcc8, speed: 6, up: 4, life: 0.8, size: 1.3, grow: 0.2 });
+        ctx.emit({ type: 'cue', name: perfect ? 'laserPerfect' : 'laser' });
+        particles.burst(to.x, to.y, to.z + 1, perfect ? 34 : 22, { color: boosted ? 0xffb347 : 0xff9ad8, speed: 8, up: 5, life: 0.7, size: 1.1, grow: 0.3 });
+        particles.burst(to.x, to.y, to.z + 1, 14, { color: 0xb8bcc8, speed: 6, up: 4, life: 0.9, size: 1.3, grow: 0.2 });
         say(`${Math.round(result.reactionMs ?? 0)} ms · ${result.damage.toLocaleString()} damage`, 'good');
       } else {
         ctx.emit({ type: 'cue', name: 'miss' });
@@ -136,30 +196,124 @@ export function createBossPhase(): PhaseFactory {
     return {
       enter() {
         pigeon.root.position.set(0, 0, PIGEON_Z);
-        root.add(world.group, pigeon.root, laser.mesh, particles.group);
+        root.add(world.group, pigeon.root, laser.group, shockwave.group, damageText.sprite, particles.group);
+        if (laserEyes) ctx.bill.head.add(laserEyes.group);
         ctx.scene.add(root);
         pigeon.setHealth(1);
         // Dev only: preview his moods from the console, e.g. __pigeon.setHealth(0.3).
         if (import.meta.env.DEV) (window as unknown as { __pigeon: PigeonView }).__pigeon = pigeon;
-        startVolley();
-        if (shieldT > 0) {
-          shield.position.set(lanes.x, 1, 0);
-          root.add(shield);
-          showToast('🛡️ SHIELD UP: 5 seconds!', 'good', 1800);
-          ctx.emit({ type: 'cue', name: 'shield' });
-        } else if (power === 'laser') {
-          showToast('💥 LASER +50% POWER!', 'good', 1800);
-        } else {
-          showToast("🐦 The Don doesn't like ducks…", 'bad', 1800);
-        }
+        // Intro: no input until the fight starts; the Don starts high in the sky.
+        ctx.requestInputMode('none');
+        ctx.bill.setPose('run');
+        pigeon.setFlight(SWOOP.getPoint(0), -0.6);
+        pigeon.setFlap(1);
+        shadow.position.set(0, 0.27, PIGEON_Z); // on the crate's lid (crate top is y 0.2, scaled 1.3)
+        root.add(shadow);
+        const ui = document.getElementById('ui');
+        ui?.append(letterbox);
+        requestAnimationFrame(() => letterbox.classList.add('on'));
+        ctx.emit({ type: 'cue', name: 'bossIncoming' });
       },
 
       update(dt) {
-        drift += dt * 2;
-        world.scroll(drift, dt * 2); // the water keeps flowing gently in the arena
-        pigeon.update(dt);
+        // Hit-stop: the world freezes for a beat when a laser lands. Effects keep playing.
+        const worldDt = hitStop > 0 ? dt * 0.08 : dt;
+        hitStop = Math.max(0, hitStop - dt);
+        drift += worldDt * 2;
+        world.scroll(drift, worldDt * 2); // the arena drifts gently
+        pigeon.update(worldDt);
         laser.update(dt);
+        shockwave.update(dt);
+        damageText.update(dt);
+        laserEyes?.update(dt);
         particles.update(dt, 0);
+
+        if (intro) {
+          introT += dt;
+          const t = introT;
+
+          // Bill skids to a stop as the music cuts.
+          const slow = 1 - span(t, 0, INTRO.stopBy);
+          drift += dt * 18 * slow * slow;
+          world.scroll(drift, dt * 18 * slow * slow);
+          if (t >= INTRO.stopBy && t - dt < INTRO.stopBy) ctx.bill.setPose('idle');
+
+          // The swoop: eased so he slows and flares just before touchdown.
+          const p = span(t, INTRO.flyFrom, INTRO.landAt);
+          const u = 1 - Math.pow(1 - easeInOut(p), 1.6);
+          if (!landed) {
+            pigeon.setFlight(SWOOP.getPoint(u), -0.6 * (1 - u) + Math.sin(t * 3) * 0.05 * (1 - u));
+            pigeon.setFlap(p < 0.85 ? 0.6 : 1); // big flaps to brake at the end
+            const near = span(t, INTRO.flyFrom, INTRO.landAt);
+            shadow.scale.setScalar(0.4 + near * 1.4);
+            (shadow.material as THREE.MeshBasicMaterial).opacity = near * 0.45;
+          }
+          if (!landed && t >= INTRO.landAt) {
+            landed = true;
+            pigeon.setFlight(new THREE.Vector3(), 0);
+            pigeon.setFlap(0);
+            pigeon.land();
+            shadow.removeFromParent();
+            ctx.emit({ type: 'cue', name: 'bossLand' });
+            const at = new THREE.Vector3(0, 1.3, PIGEON_Z + 1.2);
+            shockwave.play(at, 0xd8c0a0, true);
+            particles.burst(0, 1.2, PIGEON_Z + 1.6, 30, { color: 0xb8956a, speed: 9, up: 3, life: 0.9, size: 1.6, grow: 1.4 });
+            particles.burst(0, 1.2, PIGEON_Z + 1.6, 12, { color: 0x8a8f9c, speed: 6, up: 5, life: 0.8, size: 0.7, grow: 0 });
+          }
+
+          // Name card, then the taunt typed out in a speech bubble.
+          if (!carded && t >= INTRO.cardAt) {
+            carded = true;
+            document.getElementById('ui')?.append(card, speech);
+            requestAnimationFrame(() => card.classList.add('on'));
+            ctx.emit({ type: 'cue', name: 'bossName' });
+          }
+          if (t >= INTRO.tauntAt) {
+            const chars = Math.min(TAUNT.length, Math.floor((t - INTRO.tauntAt) / 0.035));
+            if (chars > 0 && !speech.classList.contains('on')) {
+              speech.classList.add('on');
+              ctx.emit({ type: 'cue', name: 'bossTaunt' });
+            }
+            speech.textContent = TAUNT.slice(0, chars);
+          }
+          if (t >= INTRO.outAt && letterbox.classList.contains('on')) {
+            letterbox.classList.remove('on');
+            card.classList.remove('on');
+            speech.classList.remove('on');
+          }
+
+          // Camera: down to a low, dramatic angle looking up at him, then back for the fight.
+          const k = easeInOut(span(t, 0.2, INTRO.landAt)) * (1 - easeInOut(span(t, INTRO.outAt, INTRO.end)));
+          const cam = ctx.defaultCamera;
+          cam.position.lerpVectors(gameplayCam.pos, dramaticCam.pos, k);
+          const look = gameplayCam.look.clone().lerp(dramaticCam.look, k);
+          cam.lookAt(look);
+          // A short, smooth thump when he lands (the gameplay camera rig isn't running yet).
+          const thump = landed ? Math.max(0, 1 - (t - INTRO.landAt) * 3) : 0;
+          cam.position.y += Math.sin(t * 55) * 0.18 * thump * thump;
+          cam.position.x += Math.sin(t * 41) * 0.12 * thump * thump;
+
+          if (t >= INTRO.end) {
+            intro = false;
+            letterbox.remove();
+            card.remove();
+            speech.remove();
+            startVolley();
+            ctx.emit({ type: 'cue', name: 'fight' });
+            if (shieldT > 0) {
+              shield.mesh.position.set(lanes.x, 1, 0);
+              root.add(shield.mesh);
+              showToast('🛡️ SHIELD UP: 5 seconds!', 'good', 1800);
+              ctx.emit({ type: 'cue', name: 'shield' });
+            } else if (power === 'laser') {
+              showToast('💥 FIGHT! Laser +50%!', 'good', 1600);
+            } else {
+              showToast('🥊 FIGHT!', 'bad', 1200);
+            }
+          }
+          ctx.bill.object.position.x = lanes.x;
+          return;
+        }
 
         if (wonT >= 0) {
           wonT += dt;
@@ -209,6 +363,7 @@ export function createBossPhase(): PhaseFactory {
             const hits = reached && b.lane === lanes.lane;
             if (hits && shieldT > 0) {
               b.deflected = true;
+              shield.flash();
               ctx.emit({ type: 'cue', name: 'ricochet' });
               particles.burst(lanes.x, 1.2, 0.8, 10, { color: 0x9fe8ff, speed: 5, up: 3, life: 0.4 });
               continue;
@@ -263,12 +418,10 @@ export function createBossPhase(): PhaseFactory {
         // The shield follows Bill, shimmers, and flickers out in its last second.
         if (shieldT > 0) {
           shieldT = Math.max(0, shieldT - dt);
-          shield.position.x = lanes.x;
-          shield.rotation.y += dt;
-          shield.visible = shieldT > 1 || Math.floor(shieldT * 12) % 2 === 0;
-          shield.scale.setScalar(1 + Math.sin(performance.now() * 0.008) * 0.03);
+          shield.mesh.position.x = lanes.x;
+          shield.update(dt, shieldT);
           if (shieldT === 0) {
-            shield.removeFromParent();
+            shield.mesh.removeFromParent();
             ctx.emit({ type: 'cue', name: 'shieldDown' });
           }
         }
@@ -281,6 +434,10 @@ export function createBossPhase(): PhaseFactory {
 
       exit() {
         prompt.remove();
+        letterbox.remove();
+        card.remove();
+        speech.remove();
+        if (laserEyes) ctx.bill.head.remove(laserEyes.group);
         disposeObject(root);
       },
 

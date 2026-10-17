@@ -1,5 +1,7 @@
 # Underwater timing ring — gameplay logic
 
+> Historical design: this implementation was removed after the A/D lane swim replaced the timing ring. See `DESIGN_CHANGES.md` and `client/src/phases/underwater/SwimPhase.ts` for current gameplay.
+
 The implementation is `client/src/sim/timing-ring.ts`. It has no UI, renderer, keyboard listener, or system clock. Tejas owns the frontend; the standalone timing-preview page has been removed.
 
 ## API

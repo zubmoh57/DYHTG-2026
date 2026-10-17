@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/core/config';
 import { createRandom, deriveSeed } from '../src/core/seededRandom';
 import type { Course } from '../src/course/types';
-import { STARTER_CHUNKS, buildStarterCourse, isCourseBeatable } from '../src/phases/runner/starterCourse';
+import { STARTER_CHUNKS, buildStarterCourse, isCourseBeatable } from '../src/course/generateCourse';
 
 const runner1 = (seed: number) =>
   buildStarterCourse(createRandom(deriveSeed(seed, 'runner1')), {

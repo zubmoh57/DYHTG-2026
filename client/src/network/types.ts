@@ -1,3 +1,28 @@
+import type { PhaseId } from '../core/types';
+
+// the final status of a game attempt
+export type AttemptResultStatus = 'finished' | 'failed';
+
+// interface for the attempt preogress data
+export interface AttemptProgress {
+  attemptId: string;
+  phase: PhaseId;
+  phaseProgress: number; // 0 - 1
+  lives: number;
+  coins: number;
+  score: number;
+  bossHealth: number;
+  elapsedMs: number;
+}
+
+// interface for the attempt result data
+export interface AttemptResult {
+  attemptId: string;
+  status: AttemptResultStatus;
+  score: number;
+  elapsedMs: number;
+}
+
 // DRAFT room contract (Mayank + Rayyan own network/; Tejas's lobby UI calls this).
 // Agree changes together. The lobby only ever talks to a RoomApi, so swapping the local test
 // version for the Supabase one is a one-line change in main.ts.

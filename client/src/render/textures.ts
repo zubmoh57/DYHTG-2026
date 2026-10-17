@@ -51,6 +51,93 @@ export function rippleNormalMap(size = 256, waves = 14, seed = 1): THREE.CanvasT
   return finish(c, false);
 }
 
+/**
+ * A muddy forest track: a colour map (wheel ruts, stones, dark puddles), a matching normal map for
+ * bumps, and a roughness map that makes the puddles glossy. All three tile seamlessly along the road.
+ * Lanes sit at u = 0.22, 0.5, 0.78 when the texture spans the road's width once.
+ */
+export function mudTextures(): { map: THREE.CanvasTexture; normalMap: THREE.CanvasTexture; roughnessMap: THREE.CanvasTexture } {
+  const W = 256;
+  const H = 256;
+  let s = 11;
+  const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+
+  // Height field: soft bumps, wheel ruts along the road, sunken puddles. Wraps vertically.
+  const height = new Float32Array(W * H);
+  const puddle = new Float32Array(W * H);
+  const addBlob = (cx: number, cy: number, r: number, amp: number, into = height) => {
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        const d = Math.sqrt(x * x + y * y) / r;
+        if (d > 1) continue;
+        const px = Math.round(cx + x);
+        if (px < 0 || px >= W) continue;
+        const py = (((Math.round(cy + y)) % H) + H) % H;
+        into[py * W + px] += amp * (1 - d * d) * (1 - d * d);
+      }
+    }
+  };
+  for (let i = 0; i < 260; i++) addBlob(rand() * W, rand() * H, 3 + rand() * 10, (rand() - 0.5) * 0.8);
+  // Ruts: two grooves either side of each lane centre, the way cart wheels would wear it.
+  for (const u of [0.22, 0.5, 0.78]) {
+    for (const off of [-0.07, 0.07]) {
+      const cx = (u + off) * W;
+      for (let y = 0; y < H; y++) {
+        for (let x = Math.floor(cx - 6); x <= cx + 6; x++) {
+          const d = Math.abs(x - cx) / 6;
+          if (x >= 0 && x < W && d <= 1) height[y * W + x] -= 0.9 * (1 - d * d);
+        }
+      }
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const cx = 20 + rand() * (W - 40);
+    const cy = rand() * H;
+    const r = 8 + rand() * 12;
+    addBlob(cx, cy, r, -1.2);
+    addBlob(cx, cy, r, 1, puddle);
+  }
+
+  const [mc, mg] = canvas(W);
+  const [nc, ng] = canvas(W);
+  const [rc, rg] = canvas(W);
+  const map = mg.createImageData(W, H);
+  const nrm = ng.createImageData(W, H);
+  const rough = rg.createImageData(W, H);
+  const at = (x: number, y: number) => height[(((y % H) + H) % H) * W + Math.min(W - 1, Math.max(0, x))];
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      const h = height[i];
+      const wet = Math.min(1, puddle[i] * 1.6);
+      const grain = rand() * 18;
+      // Mud colour: lighter on the bumps, darker in the ruts, near-black and bluish where it's wet.
+      const r = 122 + h * 28 + grain - wet * 42;
+      const g = 86 + h * 20 + grain * 0.8 - wet * 30;
+      const b = 54 + h * 12 + grain * 0.5 - wet * 14;
+      map.data.set([r, g, b, 255], i * 4);
+      const dx = at(x + 1, y) - at(x - 1, y);
+      const dy = at(x, y + 1) - at(x, y - 1);
+      const n = new THREE.Vector3(-dx * 1.4, -dy * 1.4, 1).normalize();
+      nrm.data.set([(n.x * 0.5 + 0.5) * 255, (n.y * 0.5 + 0.5) * 255, (n.z * 0.5 + 0.5) * 255, 255], i * 4);
+      const ro = 235 - wet * 160; // puddles are a bit shiny
+      rough.data.set([ro, ro, ro, 255], i * 4);
+    }
+  }
+  // Scattered pebbles on top of the colour.
+  mg.putImageData(map, 0, 0);
+  for (let i = 0; i < 45; i++) {
+    const shade = 85 + rand() * 45;
+    mg.fillStyle = `rgb(${shade},${shade - 8},${shade - 20})`;
+    mg.beginPath();
+    mg.ellipse(rand() * W, rand() * H, 1 + rand() * 2.5, 1 + rand() * 2, rand() * 3, 0, Math.PI * 2);
+    mg.fill();
+  }
+  ng.putImageData(nrm, 0, 0);
+  rg.putImageData(rough, 0, 0);
+  return { map: finish(mc, true), normalMap: finish(nc, false), roughnessMap: finish(rc, false) };
+}
+
 /** Soft, blotchy grass with darker tufts. Seamless. */
 export function grassTexture(): THREE.CanvasTexture {
   const size = 256;

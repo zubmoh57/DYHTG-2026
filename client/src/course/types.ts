@@ -1,5 +1,5 @@
-// DRAFT course format (contract: Rayyan + Tejas, TEAM_SPLIT §2). The runner reads a Course;
-// Rayyan's seeded generator will produce one. Change it together, not alone.
+// Shared runner course format (Rayyan + Tejas, TEAM_SPLIT §2).
+// course/generateCourse.ts produces it; RunnerPhase consumes it.
 
 export type Lane = 0 | 1 | 2;
 

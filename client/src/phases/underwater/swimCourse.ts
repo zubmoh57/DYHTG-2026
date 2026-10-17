@@ -1,5 +1,10 @@
-// The swim's course (Tejas): coin trails to collect and sea creatures to dodge, built from hand-made
-// chunks shuffled by the room seed, so everyone in a room gets the same swim (brief §9).
+// The swim's course (Tejas): a continuous trail of coins that weaves between rows of jellyfish and
+// pufferfish. Built from the room seed, so everyone in a room gets the same swim (brief §9).
+//
+// Hard on purpose: creature rows come often and usually block two lanes, the trail hops lanes every
+// few coins, and some coins lead right up to a creature ("bait"), so grabbing them means dodging late.
+// It only ever moves one lane at a time, so every coin is collectable with sharp play. About 120
+// coins per swim: the 100-coin laser needs a near-perfect swim.
 
 import type { SeededRandom } from '../../core/seededRandom';
 import type { Lane } from '../../course/types';
@@ -17,91 +22,74 @@ export interface SwimCourse {
   items: SwimItem[];
 }
 
-interface SwimChunk {
-  name: string;
-  length: number;
-  items: { at: number; lane: Lane; kind: SwimItemKind }[];
-}
-
-const line = (lane: Lane, from: number, count: number, gap = 2.6) =>
-  Array.from({ length: count }, (_, i) => ({ at: from + i * gap, lane, kind: 'coin' as const }));
-
-/** Obstacle rows never cover all three lanes, and rows are at least 16 units apart. */
-export const SWIM_CHUNKS: readonly SwimChunk[] = [
-  { name: 'warm-up', length: 30, items: line(1, 6, 7) },
-  {
-    name: 'jelly-gate',
-    length: 40,
-    items: [
-      { at: 18, lane: 0, kind: 'jelly' },
-      { at: 18, lane: 2, kind: 'jelly' },
-      ...line(1, 8, 8),
-    ],
-  },
-  {
-    name: 'puffer-slalom',
-    length: 50,
-    items: [
-      { at: 12, lane: 1, kind: 'puffer' },
-      { at: 32, lane: 0, kind: 'puffer' },
-      ...line(0, 8, 3),
-      ...line(2, 22, 4),
-    ],
-  },
-  {
-    name: 'zigzag-coins',
-    length: 46,
-    items: [...line(0, 6, 4), ...line(1, 17, 4), ...line(2, 28, 4), { at: 40, lane: 0, kind: 'jelly' }],
-  },
-  {
-    name: 'risky-middle',
-    length: 44,
-    items: [
-      { at: 14, lane: 0, kind: 'jelly' },
-      { at: 14, lane: 2, kind: 'puffer' },
-      { at: 32, lane: 1, kind: 'jelly' },
-      ...line(1, 6, 4),
-      ...line(0, 26, 5),
-    ],
-  },
-  {
-    name: 'side-stash',
-    length: 40,
-    items: [{ at: 12, lane: 1, kind: 'puffer' }, ...line(2, 6, 9, 2.4)],
-  },
-  {
-    name: 'double-trouble',
-    length: 48,
-    items: [
-      { at: 12, lane: 1, kind: 'jelly' },
-      { at: 12, lane: 2, kind: 'jelly' },
-      { at: 30, lane: 0, kind: 'puffer' },
-      { at: 30, lane: 1, kind: 'puffer' },
-      ...line(0, 6, 3),
-      ...line(2, 24, 6),
-    ],
-  },
-];
-
-const RUNWAY = 24;
-const END_CLEAR = 26;
+const RUNWAY = 16;
+const END_CLEAR = 18;
+const COIN_GAP = 1.95;
+/** Creature rows: frequent. Still close to 0.7 s apart at full swim speed. */
+const ROW_GAP: [number, number] = [10, 13];
+const TWO_LANE_CHANCE = 0.7;
+/** The trail hops to a neighbouring lane every few coins, even with no creature in the way. */
+const HOP_EVERY: [number, number] = [3, 5];
+/** Bait coins stay in a creature's lane until this close to it, then the trail ducks out. */
+const BAIT_GAP = 3.1;
+/** When the escape needs two lanes, the trail moves this early instead (still fair). */
+const EARLY_SWITCH = 8;
+/** Coins this close to a creature in the same lane are left out (you'd be hit taking them). */
+const CREATURE_CLEAR = 1.2;
 
 export function buildSwimCourse(rng: SeededRandom, length: number): SwimCourse {
   const items: SwimItem[] = [];
-  let bag: SwimChunk[] = [];
-  let pos = RUNWAY;
-  for (;;) {
-    if (bag.length === 0) bag = rng.shuffle(SWIM_CHUNKS);
-    const chunk = bag.pop()!;
-    if (pos + chunk.length > length - END_CLEAR) break;
-    for (const it of chunk.items) items.push({ distance: pos + it.at, lane: it.lane, kind: it.kind });
-    pos += chunk.length;
+
+  // 1. Rows of creatures: one or (usually) two lanes blocked, never three.
+  const rows: { distance: number; blocked: Lane[] }[] = [];
+  for (let d = RUNWAY + 10; d < length - END_CLEAR; d += rng.int(ROW_GAP[0], ROW_GAP[1])) {
+    const lanes = rng.shuffle([0, 1, 2] as Lane[]);
+    const blocked = lanes.slice(0, rng.next() < TWO_LANE_CHANCE ? 2 : 1);
+    rows.push({ distance: d, blocked });
+    for (const lane of blocked) items.push({ distance: d, lane, kind: rng.next() < 0.5 ? 'jelly' : 'puffer' });
   }
+
+  // 2. The coin trail.
+  let lane: Lane = 1;
+  let rowIndex = 0;
+  let sinceHop = 0;
+  let hopAt = rng.int(HOP_EVERY[0], HOP_EVERY[1]);
+  for (let d = RUNWAY; d < length - END_CLEAR; d += COIN_GAP) {
+    while (rows[rowIndex] && d > rows[rowIndex].distance + CREATURE_CLEAR) rowIndex++;
+    const row = rows[rowIndex];
+    const toRow = row ? row.distance - d : Infinity;
+    const blockedHere = row ? row.blocked.includes(lane) : false;
+
+    if (row && blockedHere) {
+      const open = ([0, 1, 2] as Lane[]).filter((l) => !row.blocked.includes(l));
+      const adjacent = open.filter((l) => Math.abs(l - lane) === 1);
+      if (adjacent.length && toRow <= BAIT_GAP) {
+        // Bait: the coins led right up to the creature; now duck into a neighbouring open lane.
+        lane = rng.pick(adjacent);
+        sinceHop = 0;
+      } else if (!adjacent.length && toRow <= EARLY_SWITCH) {
+        // The only way out is two lanes over: move one lane now; the next coin moves again.
+        lane = 1;
+        sinceHop = 0;
+      }
+    } else if (++sinceHop >= hopAt && toRow > EARLY_SWITCH) {
+      // A random hop to a neighbouring lane, as long as it doesn't run into the next row.
+      const options = ([0, 1, 2] as Lane[]).filter((l) => Math.abs(l - lane) === 1 && !(row && row.blocked.includes(l) && toRow < EARLY_SWITCH + 4));
+      if (options.length) lane = rng.pick(options);
+      sinceHop = 0;
+      hopAt = rng.int(HOP_EVERY[0], HOP_EVERY[1]);
+    }
+
+    const at = Math.round(d * 100) / 100; // check the position the coin will really have
+    const tooClose = rows.some((r) => r.blocked.includes(lane) && Math.abs(r.distance - at) < CREATURE_CLEAR);
+    if (!tooClose) items.push({ distance: at, lane, kind: 'coin' });
+  }
+
   items.sort((a, b) => a.distance - b.distance);
   return { length, items };
 }
 
-/** No row of obstacles may block all three lanes (there is always a way through). */
+/** No row of creatures may block all three lanes (there is always a way through). */
 export function swimCourseHasPath(course: SwimCourse): boolean {
   const rows = new Map<number, Set<Lane>>();
   for (const it of course.items) {
@@ -111,4 +99,18 @@ export function swimCourseHasPath(course: SwimCourse): boolean {
     rows.set(it.distance, row);
   }
   return [...rows.values()].every((row) => row.size < 3);
+}
+
+/** No coin sits on top of a creature (collecting a coin must never mean taking a hit). */
+export function coinsAvoidCreatures(course: SwimCourse): boolean {
+  const creatures = course.items.filter((i) => i.kind !== 'coin');
+  return course.items
+    .filter((i) => i.kind === 'coin')
+    .every((c) => !creatures.some((k) => k.lane === c.lane && Math.abs(k.distance - c.distance) < CREATURE_CLEAR));
+}
+
+/** Consecutive coins are never more than one lane apart, so the whole trail can be followed. */
+export function trailIsFollowable(course: SwimCourse): boolean {
+  const coins = course.items.filter((i) => i.kind === 'coin');
+  return coins.every((c, i) => i === 0 || Math.abs(c.lane - coins[i - 1].lane) <= 1);
 }

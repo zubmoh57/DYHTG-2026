@@ -1,23 +1,24 @@
-// The forest river (Tejas): glossy flowing water, sloped grassy banks, and instanced trees, bushes,
-// rocks, reeds and lily pads that scroll past and recycle. Instancing keeps hundreds of props to a
-// handful of draw calls. Render-only; cosmetic randomness uses Math.random() on purpose.
+// The forest road (Tejas): a muddy track with ruts and puddles, grassy verges that rise into the
+// woods, and instanced trees, bushes, rocks, flowers, mushrooms and grass tufts that scroll past and
+// recycle. Instancing keeps hundreds of props to a handful of draw calls. Render-only; cosmetic
+// randomness uses Math.random() on purpose.
 
 import * as THREE from 'three';
-import { grassTexture, rippleNormalMap } from './textures';
+import { grassTexture, mudTextures } from './textures';
 
-export const RIVER_HALF_WIDTH = 6;
+export const ROAD_HALF_WIDTH = 4.7;
 const STRIP_LENGTH = 340;
 const NEAR = 24; // props recycle once they're this far behind Bill
 const SPAN = 260; // ...back to this far ahead
-const WATER_TILE = 11;
+const MUD_TILE = 9;
 const GRASS_TILE = 10;
 
-/** Height of the bank at a distance from the river's centre line (only depends on x, so it scrolls). */
+/** Height of the ground beside the road (only depends on x, so it scrolls). The road itself is y = 0. */
 export function bankHeight(x: number): number {
-  const d = Math.abs(x) - RIVER_HALF_WIDTH;
-  if (d <= 0) return -0.4;
-  const rise = Math.min(1, d / 3);
-  return -0.4 + 1.3 * (rise * rise * (3 - 2 * rise)) + 0.35 * Math.sin(Math.abs(x) * 0.35);
+  const d = Math.abs(x) - ROAD_HALF_WIDTH + 0.4;
+  if (d <= 0) return -0.02;
+  const rise = Math.min(1, d / 4);
+  return -0.02 + 0.9 * (rise * rise * (3 - 2 * rise)) + 0.3 * Math.sin(Math.abs(x) * 0.35) * rise;
 }
 
 interface Part {
@@ -97,41 +98,42 @@ function scatter(count: number, minX: number, maxX: number, onBank: boolean, sca
   });
 }
 
-export class ForestRiver {
+export class ForestRoad {
   readonly group = new THREE.Group();
   private readonly kinds: PropKind[] = [];
-  private readonly waterNormals: THREE.Texture;
+  private readonly mud: THREE.Texture[];
   private readonly grass: THREE.Texture[] = [];
 
   constructor() {
-    // Water: glossy and reflective (it picks up the sky through the scene environment).
-    this.waterNormals = rippleNormalMap();
-    this.waterNormals.repeat.set((RIVER_HALF_WIDTH * 2 + 6) / WATER_TILE, STRIP_LENGTH / WATER_TILE);
-    const water = new THREE.Mesh(
-      new THREE.PlaneGeometry(RIVER_HALF_WIDTH * 2 + 6, STRIP_LENGTH),
-      new THREE.MeshPhysicalMaterial({
-        color: 0x1f7fa6,
-        roughness: 0.1,
-        metalness: 0.05,
-        normalMap: this.waterNormals,
-        normalScale: new THREE.Vector2(0.28, 0.28),
-        clearcoat: 1,
-        clearcoatRoughness: 0.12,
-        envMapIntensity: 1.3,
+    // The road: muddy, rutted, with glossy puddles. The texture spans the road's width exactly once,
+    // so the wheel ruts line up with the three lanes.
+    const mud = mudTextures();
+    this.mud = [mud.map, mud.normalMap, mud.roughnessMap];
+    for (const t of this.mud) t.repeat.set(1, STRIP_LENGTH / MUD_TILE);
+    const road = new THREE.Mesh(
+      new THREE.PlaneGeometry(ROAD_HALF_WIDTH * 2, STRIP_LENGTH),
+      new THREE.MeshStandardMaterial({
+        map: mud.map,
+        normalMap: mud.normalMap,
+        normalScale: new THREE.Vector2(1.1, 1.1),
+        roughnessMap: mud.roughnessMap,
+        roughness: 1,
+        metalness: 0,
+        envMapIntensity: 0.9,
       }),
     );
-    water.rotation.x = -Math.PI / 2;
-    water.position.z = NEAR - STRIP_LENGTH / 2;
-    water.receiveShadow = true;
-    this.group.add(water);
+    road.rotation.x = -Math.PI / 2;
+    road.position.z = NEAR - STRIP_LENGTH / 2;
+    road.receiveShadow = true;
+    this.group.add(road);
 
-    // Banks: a smooth slope up from the water, then gently rolling ground.
+    // Verges: a smooth slope up from the road, then gently rolling forest floor.
     for (const side of [-1, 1]) {
       const width = 60;
       const geometry = new THREE.PlaneGeometry(width, STRIP_LENGTH, 60, 1);
       const pos = geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
-        const x = side * (RIVER_HALF_WIDTH - 1 + (pos.getX(i) + width / 2));
+        const x = side * (ROAD_HALF_WIDTH - 0.6 + (pos.getX(i) + width / 2));
         pos.setX(i, x);
         pos.setZ(i, bankHeight(x)); // plane is rotated below, so local z becomes height
       }
@@ -171,7 +173,7 @@ export class ForestRiver {
         { geometry: cone(1.35, 2.1), material: pineGreen, local: m4(0, 3.3, 0) },
         { geometry: cone(0.9, 1.8), material: pineGreen, local: m4(0, 4.35, 0) },
       ],
-      scatter(70, 7.5, 48, true, [0.9, 1.8]),
+      scatter(80, 7, 48, true, [0.9, 1.8]),
     );
     this.addKind(
       [
@@ -181,7 +183,7 @@ export class ForestRiver {
         { geometry: blob(1), material: leafGreen, local: m4(-0.75, 2.8, -0.25, 0.9) },
         { geometry: blob(0.9), material: leafGreen, local: m4(0.1, 3.9, 0.1) },
       ],
-      scatter(55, 8, 48, true, [0.8, 1.5]),
+      scatter(60, 7.5, 48, true, [0.8, 1.5]),
     );
     this.addKind(
       [
@@ -189,37 +191,61 @@ export class ForestRiver {
         { geometry: blob(0.55), material: bushGreen, local: m4(0.6, 0.35, 0.2) },
         { geometry: blob(0.5), material: bushGreen, local: m4(-0.55, 0.3, -0.1) },
       ],
-      scatter(50, 6.6, 16, true, [0.7, 1.3]),
+      scatter(50, 6, 16, true, [0.7, 1.3]),
     );
     this.addKind(
       [{ geometry: new THREE.DodecahedronGeometry(0.8, 1), material: stone, local: m4(0, 0.2, 0, 1.3, 0.7, 1) }],
-      scatter(36, 6.2, 22, true, [0.5, 1.4]),
+      scatter(36, 5.8, 22, true, [0.5, 1.4]),
     );
 
-    // Reeds and cattails at the water's edge.
-    const reed = mat(0x5f8f3c);
-    const cattail = mat(0x6b4226);
-    const reedParts: Part[] = [];
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      const h = 1.3 + (i % 3) * 0.35;
-      reedParts.push({ geometry: new THREE.CylinderGeometry(0.03, 0.05, h, 6), material: reed, local: m4(Math.cos(a) * 0.25, h / 2, Math.sin(a) * 0.25) });
-      if (i % 2 === 0) {
-        reedParts.push({ geometry: new THREE.CapsuleGeometry(0.07, 0.3, 4, 8), material: cattail, local: m4(Math.cos(a) * 0.25, h + 0.1, Math.sin(a) * 0.25) });
-      }
+    // Grass tufts softening the road's edge.
+    const tuftMat = mat(0x5aa64a, { roughness: 0.9 });
+    const tuftParts: Part[] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      tuftParts.push({
+        geometry: new THREE.ConeGeometry(0.05, 0.5 + (i % 3) * 0.12, 5),
+        material: tuftMat,
+        local: new THREE.Matrix4().compose(
+          new THREE.Vector3(Math.cos(a) * 0.12, 0.22, Math.sin(a) * 0.12),
+          new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(a) * 0.35, 0, Math.cos(a) * 0.35)),
+          new THREE.Vector3(1, 1, 1),
+        ),
+      });
     }
-    this.addKind(reedParts, scatter(46, 5.6, 6.8, false, [0.8, 1.2]).map((p) => ({ ...p, y: -0.3 })));
+    this.addKind(tuftParts, scatter(90, ROAD_HALF_WIDTH - 0.3, ROAD_HALF_WIDTH + 1.6, true, [0.8, 1.4]), false);
 
-    // Lily pads with a few pink flowers, floating outside the lanes.
-    const pad = new THREE.CylinderGeometry(0.55, 0.55, 0.04, 24, 1, false, 0.35, Math.PI * 1.85);
-    this.addKind([{ geometry: pad, material: mat(0x3f9a4a, { roughness: 0.5 }), local: m4(0, 0.02, 0) }], scatter(40, 4.2, 5.8, false, [0.7, 1.3]));
+    // Wildflowers on the verges.
+    const stem = mat(0x4f8f3a);
+    for (const petal of [0xff7aa8, 0xffe14d, 0xffffff, 0xb48cff]) {
+      this.addKind(
+        [
+          { geometry: new THREE.CylinderGeometry(0.02, 0.02, 0.4, 5), material: stem, local: m4(0, 0.2, 0) },
+          { geometry: new THREE.SphereGeometry(0.11, 10, 8), material: mat(petal, { roughness: 0.5 }), local: m4(0, 0.42, 0, 1, 0.5, 1) },
+          { geometry: new THREE.SphereGeometry(0.045, 8, 6), material: mat(0xffb020), local: m4(0, 0.46, 0) },
+        ],
+        scatter(18, ROAD_HALF_WIDTH + 0.2, ROAD_HALF_WIDTH + 5, true, [0.8, 1.3]),
+        false,
+      );
+    }
+
+    // Red-capped mushrooms with white spots.
+    const capGeo = new THREE.SphereGeometry(0.22, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
     this.addKind(
       [
-        { geometry: pad, material: mat(0x3f9a4a, { roughness: 0.5 }), local: m4(0, 0.02, 0) },
-        { geometry: new THREE.ConeGeometry(0.16, 0.22, 8), material: mat(0xff8fc0, { roughness: 0.5 }), local: m4(0.1, 0.14, 0) },
-        { geometry: new THREE.SphereGeometry(0.06, 8, 6), material: mat(0xffe066), local: m4(0.1, 0.2, 0) },
+        { geometry: new THREE.CylinderGeometry(0.06, 0.08, 0.25, 10), material: mat(0xf3ead6), local: m4(0, 0.12, 0) },
+        { geometry: capGeo, material: mat(0xd6402f, { roughness: 0.5 }), local: m4(0, 0.22, 0, 1, 0.8, 1) },
+        { geometry: new THREE.SphereGeometry(0.035, 8, 6), material: mat(0xffffff), local: m4(0.09, 0.36, 0.05) },
+        { geometry: new THREE.SphereGeometry(0.03, 8, 6), material: mat(0xffffff), local: m4(-0.07, 0.38, -0.06) },
       ],
-      scatter(16, 4.2, 5.8, false, [0.8, 1.2]),
+      scatter(26, ROAD_HALF_WIDTH + 0.4, ROAD_HALF_WIDTH + 7, true, [0.8, 1.6]),
+    );
+
+    // Pebbles at the edge of the track.
+    this.addKind(
+      [{ geometry: new THREE.DodecahedronGeometry(0.18, 1), material: stone, local: m4(0, 0.05, 0, 1.3, 0.6, 1) }],
+      scatter(50, ROAD_HALF_WIDTH - 0.6, ROAD_HALF_WIDTH + 0.6, false, [0.6, 1.4]),
+      false,
     );
 
     // Far hills: big, hazy, static shapes so the horizon isn't empty.
@@ -239,10 +265,9 @@ export class ForestRiver {
     this.group.add(...kind.meshes);
   }
 
-  /** Move the world towards the camera by `step`; `distance` drives the flowing surfaces. */
+  /** Move the world towards the camera by `step`; `distance` scrolls the ground textures. */
   scroll(distance: number, step: number): void {
-    this.waterNormals.offset.y = distance / WATER_TILE + performance.now() * 0.00003;
-    this.waterNormals.offset.x = Math.sin(performance.now() * 0.0003) * 0.05;
+    for (const t of this.mud) t.offset.y = distance / MUD_TILE;
     for (const g of this.grass) g.offset.y = distance / GRASS_TILE;
     if (step !== 0) for (const k of this.kinds) k.scroll(step);
   }

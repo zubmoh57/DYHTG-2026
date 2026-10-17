@@ -10,16 +10,16 @@ import { createDive } from './transitions/DivePhase';
 import { createSurfaceReturn } from './transitions/SurfaceReturnPhase';
 import { createSwimPhase } from './underwater/SwimPhase';
 
-/** Dev only: `?short` cuts the runners and the swim to a fifth of their length. */
+/** Dev only: `?short` cuts the runners and the swim to a fifth of their length (a ~15 s run). */
 const SHORT = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('short');
 const length = (full: number) => (SHORT ? Math.round(full / 5) : full);
 
 export const PHASES: Partial<Record<Stage, PhaseFactory>> = {
-  RUNNER_1: createRunner({ section: 'runner1', length: length(CONFIG.runner.runner1Distance), crumbs: false, heart: false, dog: true }),
+  RUNNER_1: createRunner({ section: 'runner1', length: length(CONFIG.runner.runner1Distance), crumbs: false, heart: false, dog: true, pond: true, maxSpeed: CONFIG.runner.maxSpeed }),
   DIVE: createDive(),
   UNDERWATER: createSwimPhase(length(CONFIG.swim.distance)),
   SURFACE_RETURN: createSurfaceReturn(),
-  RUNNER_2: createRunner({ section: 'runner2', length: length(CONFIG.runner.runner2Distance), crumbs: true, heart: true, boost: true }),
+  RUNNER_2: createRunner({ section: 'runner2', length: length(CONFIG.runner.runner2Distance), crumbs: true, heart: true, boost: true, maxSpeed: CONFIG.runner.runner2MaxSpeed }),
   BOSS: createBossPhase(),
 };
 

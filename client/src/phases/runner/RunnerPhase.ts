@@ -9,11 +9,13 @@ import { powerUpFor } from '../../core/RunState';
 import type { Phase, PhaseContext, PhaseFactory } from '../../core/types';
 import type { Course, CourseItem } from '../../course/types';
 import { disposeObject } from '../../render/dispose';
+import { BoostAura } from '../../render/effects';
+import { POND_AHEAD, Pond } from '../../render/pond';
 import { showToast } from '../../ui/toast';
 import { CameraRig } from './cameraRig';
 import { DogView } from './dogView';
 import { Particles, RunnerWorld, makeBranch, makeCrumb, makeHeart } from './runnerView';
-import { buildStarterCourse } from './starterCourse';
+import { buildStarterCourse } from '../../course/generateCourse';
 
 export interface RunnerOptions {
   section: 'runner1' | 'runner2';
@@ -24,6 +26,10 @@ export interface RunnerOptions {
   dog?: boolean;
   /** Apply the swim's speed boost at the start, if it was bought (Runner 2). */
   boost?: boolean;
+  /** Top speed for this stage: the duck gets faster each stage. */
+  maxSpeed: number;
+  /** A pond in the road just past the finish (Runner 1): the dive happens into it. */
+  pond?: boolean;
 }
 
 /** Half the depth of Bill's hitbox along the track. Items are caught with a swept check. */
@@ -85,6 +91,8 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
     let boostT = boosted ? CONFIG.powerUps.boostSec : 0;
     const speedLines = document.createElement('div');
     speedLines.className = 'speed-lines';
+    const aura = boosted ? new BoostAura() : null;
+    const pond = options.pond ? new Pond() : null;
 
     const flashScreen = (kind: 'hit' | 'heal') => {
       flash.className = 'screen-flash';
@@ -93,6 +101,16 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
     };
 
     const onHit = (p: Placed) => {
+      if (boostT > 0) {
+        // Boosted: Bill smashes straight through, no damage and no slowdown.
+        p.flyT = 0.0001;
+        hitStop = 0.04;
+        rig.addTrauma(0.3);
+        ctx.emit({ type: 'cue', name: 'smash' });
+        particles.burst(lanes.x, 0.5, -0.3, 18, { color: 0x8a5a2b, speed: 7, up: 6, life: 0.6, size: 1.2, grow: 0.2 });
+        particles.burst(lanes.x, 0.8, -0.3, 10, { color: 0xffd23f, speed: 6, up: 4, life: 0.4, size: 0.8 });
+        return;
+      }
       if (!ctx.damagePlayer()) return; // still invulnerable: no life lost, no slowdown
       if (dog) {
         // Stumble once and the dog catches up; stumble again while it's on you and it bites.
@@ -115,7 +133,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
       ctx.emit({ type: 'cue', name: 'hit' });
       p.flyT = 0.0001;
       particles.burst(lanes.x, 0.4, -0.3, 14, { color: 0x8a5a2b, speed: 5, up: 5, life: 0.6, size: 1.2, grow: 0.2 });
-      particles.burst(lanes.x, 0.1, -0.3, 10, { color: 0xffffff, speed: 3, up: 4, life: 0.5 });
+      particles.burst(lanes.x, 0.1, -0.3, 10, { color: 0x9a7650, speed: 3, up: 3, life: 0.6, size: 1.4, grow: 0.8 });
     };
 
     const onPickup = (p: Placed) => {
@@ -143,6 +161,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
           placed.push({ item, object, done: false, collected: false, flyT: 0, phase: Math.random() * Math.PI * 2 });
         }
         root.add(world.group, particles.group);
+        if (pond) root.add(pond.group);
         if (dog) {
           dog.root.scale.setScalar(0.8);
           root.add(dog.root);
@@ -150,8 +169,9 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
           showToast('🐕 Run! A dog is chasing you!', 'bad', 2000);
         }
         if (boosted) {
-          speed = CONFIG.runner.maxSpeed * CONFIG.powerUps.boostSpeedMultiplier;
+          speed = options.maxSpeed * CONFIG.powerUps.boostSpeedMultiplier;
           document.getElementById('ui')?.appendChild(speedLines);
+          root.add(aura!.group);
           showToast('⚡ SPEED BOOST!', 'good', 1600);
           ctx.emit({ type: 'cue', name: 'boost' });
         }
@@ -179,14 +199,30 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
 
         // The boost lifts the speed cap for a few seconds, then normal speed takes over again.
         boostT = Math.max(0, boostT - dt);
-        const cap = boostT > 0 ? CONFIG.runner.maxSpeed * CONFIG.powerUps.boostSpeedMultiplier : CONFIG.runner.maxSpeed;
+        const cap = boostT > 0 ? options.maxSpeed * CONFIG.powerUps.boostSpeedMultiplier : options.maxSpeed;
         speed = speed > cap ? Math.max(cap, speed - 6 * worldDt) : Math.min(cap, speed + CONFIG.runner.acceleration * worldDt);
-        if (boosted && boostT === 0 && speedLines.isConnected) speedLines.remove();
+        if (boosted && boostT === 0 && speedLines.isConnected) {
+          speedLines.remove();
+          aura?.group.removeFromParent();
+          ctx.emit({ type: 'cue', name: 'boostEnd' });
+        }
+        if (aura && boostT > 0) {
+          aura.group.position.set(lanes.x, 0, 0);
+          aura.update(dt);
+          if (Math.random() < 0.6) particles.burst(lanes.x + (Math.random() - 0.5) * 0.6, 0.4 + Math.random() * 1.2, 0.3, 1, { color: 0xffd23f, speed: 1, up: 0.5, life: 0.4, size: 0.5, grow: 0 });
+        }
         const previous = distance;
         const step = speed * worldDt;
         distance = Math.min(course.length, distance + step);
 
         world.scroll(distance, step);
+        if (pond) {
+          // Seen from far off as the run nears its end; the dive starts with it exactly here.
+          const ahead = course.length + POND_AHEAD - distance;
+          pond.group.position.z = -ahead;
+          pond.group.visible = ahead < VIEW_AHEAD;
+          pond.update(dt);
+        }
 
         for (const p of placed) {
           const z = -(p.item.distance - distance);
@@ -227,7 +263,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
           }
         }
 
-        // Bill: lane position, a squash-and-stretch pop on lane changes, splashes at his feet.
+        // Bill: lane position, a squash-and-stretch pop on lane changes, dust puffs at his feet.
         const bill = ctx.bill.object;
         bill.position.x = lanes.x;
         squashT = Math.min(1, squashT + dt / 0.2);
@@ -243,7 +279,7 @@ export function createRunner(options: RunnerOptions): PhaseFactory {
         splashTimer -= worldDt;
         if (splashTimer <= 0 && worldDt > 0) {
           splashTimer = 0.09;
-          particles.burst(lanes.x, 0.03, 0.2, 2, { color: 0xe8f7ff, speed: 1.4, up: 2.4, life: 0.28, size: 0.55, grow: 0.5 });
+          particles.burst(lanes.x, 0.03, 0.2, 2, { color: 0xb8956a, speed: 1.2, up: 1.4, life: 0.4, size: 0.6, grow: 1.6 });
         }
         particles.update(dt, step);
 
