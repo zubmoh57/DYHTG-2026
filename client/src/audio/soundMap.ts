@@ -43,7 +43,13 @@ export type SoundName =
   | 'countdownTick'
   | 'go'
   | 'sting'
-  | 'titleHit';
+  | 'titleHit'
+  | 'smash'
+  | 'boostEnd'
+  | 'swoop'
+  | 'bossLand'
+  | 'pigeonLaugh'
+  | 'fight';
 
 export type MusicTrack = 'lobby' | 'intro' | 'runner' | 'underwater' | 'boss';
 
@@ -79,6 +85,13 @@ export const CUE_SOUNDS: Record<string, SoundName> = {
   shield: 'shieldUp',
   ricochet: 'ricochet',
   shieldDown: 'shieldDown',
+  smash: 'smash', // boosted Bill crashing through a branch
+  boostEnd: 'boostEnd',
+  bossIncoming: 'swoop',
+  bossLand: 'bossLand',
+  bossName: 'sting',
+  bossTaunt: 'pigeonLaugh',
+  fight: 'fight',
 };
 
 /**

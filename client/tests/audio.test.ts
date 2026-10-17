@@ -12,7 +12,8 @@ describe('audio sound map', () => {
   it('plays each cue the phases emit', () => {
     const emitted = ['laneChange', 'hit', 'crumb', 'bark', 'bite', 'boost', 'pondPop', 'jump', 'splash',
       'swish', 'coin', 'zap', 'ouch', 'powerup', 'nopower', 'cash', 'grab', 'shot', 'shield', 'ricochet',
-      'shieldDown', 'ready', 'aim', 'fire', 'laser', 'miss', 'bossDefeated'];
+      'shieldDown', 'ready', 'aim', 'fire', 'laser', 'miss', 'bossDefeated', 'smash', 'boostEnd',
+      'bossIncoming', 'bossLand', 'bossName', 'bossTaunt', 'fight'];
     for (const name of emitted) expect(soundsFor({ type: 'cue', name })).toHaveLength(1);
   });
 

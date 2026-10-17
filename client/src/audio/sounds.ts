@@ -234,4 +234,37 @@ export const SOUNDS: Record<SoundName, (s: Synth) => void> = {
     s.noise({ dur: 1.6, gain: 0.25, filter: { type: 'highpass', freq: 5000 } });
     for (const n of [38, 45, 50, 53]) s.tone({ freq: midiToFreq(n), type: 'sawtooth', dur: 1.5, gain: 0.07, filter: { type: 'lowpass', freq: 1200 } });
   },
+
+  smash: (s) => {
+    s.noise({ dur: 0.25, gain: 0.5, filter: { type: 'bandpass', freq: 1200, to: 300, q: 1 } });
+    s.tone({ freq: 220, to: 60, dur: 0.18, gain: 0.45 });
+    s.noise({ at: 0.05, dur: 0.08, gain: 0.3, filter: { type: 'highpass', freq: 3000 } });
+  },
+
+  boostEnd: (s) => s.tone({ freq: 880, to: 220, type: 'sawtooth', dur: 0.35, gain: 0.1, filter: { type: 'lowpass', freq: 2000 } }),
+
+  // Boss intro: the Don swoops in, lands, gets a name card and taunts.
+  swoop: (s) => {
+    s.noise({ dur: 1.1, gain: 0.3, filter: { type: 'bandpass', freq: 3000, to: 300, q: 1.5 } });
+    for (let i = 0; i < 5; i++) s.noise({ at: 0.15 + i * 0.16, dur: 0.06, gain: 0.25, filter: { type: 'lowpass', freq: 700 } });
+  },
+
+  bossLand: (s) => {
+    s.tone({ freq: 90, to: 28, dur: 0.6, gain: 0.8 });
+    s.noise({ dur: 0.4, gain: 0.4, filter: { type: 'lowpass', freq: 600, to: 100 } });
+  },
+
+  pigeonLaugh: (s) => {
+    // Coo-coo-COO: a smug pigeon chuckle.
+    const filter = { type: 'bandpass' as const, freq: 700, q: 3 };
+    [0, 0.14, 0.28].forEach((at, i) =>
+      s.tone({ freq: 380 + i * 40, to: 300, type: 'sawtooth', at, dur: 0.12 + i * 0.05, gain: 0.25, filter }),
+    );
+  },
+
+  fight: (s) => {
+    s.tone({ freq: 120, to: 35, dur: 0.6, gain: 0.7 });
+    s.noise({ dur: 0.8, gain: 0.3, filter: { type: 'highpass', freq: 4000 } });
+    for (const n of [50, 57, 62]) s.tone({ freq: midiToFreq(n), type: 'sawtooth', dur: 0.7, gain: 0.08, filter: { type: 'lowpass', freq: 2500 } });
+  },
 };
