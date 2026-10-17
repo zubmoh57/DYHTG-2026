@@ -567,7 +567,7 @@ body {
 .intro-title {
   display: flex;
   gap: 0.3em;
-  font: 900 clamp(48px, 11vw, 120px)/1 'Arial Black', Impact, sans-serif;
+  font: 900 clamp(36px, 8vw, 110px)/1 'Arial Black', Impact, sans-serif;
   color: var(--accent);
   text-shadow: 6px 6px 0 #000, 0 0 30px rgba(243, 156, 50, 0.6);
 }

@@ -41,7 +41,7 @@ export function bill(x: number, y: number, scale = 1, mood: BillMood = 'cool'): 
     <path d="M-4 -72 L4 -72 L6 -46 L0 -38 L-6 -46Z" fill="${C.tie}"/>
     <path d="M-12 -76 L-4 -50 L-16 -60Z M12 -76 L4 -50 L16 -60Z" fill="${C.lapel}"/>
     <circle cx="-10" cy="-28" r="2.5" fill="${C.gold}"/><circle cx="10" cy="-28" r="2.5" fill="${C.gold}"/>
-    <ellipse cx="-36" cy="-46" rx="9" ry="22" fill="${C.lapel}" transform="rotate(12 -36 -46)"/>
+    <path d="M-33 -68 Q-46 -44 -35 -22 Q-27 -34 -28 -62Z" fill="${C.lapel}"/>
     <circle cx="0" cy="-104" r="30" fill="${C.feathers}"/>
     <path d="M18 -98 Q50 -102 52 -92 Q50 -84 18 -86Z" fill="${C.beak}"/>
     <line x1="44" y1="-90" x2="62" y2="-84" stroke="#d9b77a" stroke-width="2.5" stroke-linecap="round"/>
@@ -118,7 +118,7 @@ export const SCENES = {
     <rect y="170" width="400" height="55" fill="#4fa3c7"/>
     <path d="M0 176 Q50 170 100 176 T200 176 T300 176 T400 176" stroke="#bfe8ff" stroke-width="3" fill="none" class="ripple"/>
     <g class="bob">${bill(200, 180, 1)}</g>
-    <text x="62" y="70" font-size="14" fill="#7a3d12" font-family="Georgia" font-style="italic" class="fade-in">*not a real banker*</text>`),
+    <text x="24" y="40" font-size="14" fill="#7a3d12" font-family="Georgia" font-style="italic" class="fade-in">*not a real banker*</text>`),
 
   iou: svg(`${sky('#2b2233', '#151018', 'g2')}
     <g class="drop-in" transform="rotate(-4 200 110)">
@@ -135,7 +135,7 @@ export const SCENES = {
     </g>`),
 
   don: svg(`${sky('#1b1b24', '#0d0d12', 'g3')}
-    <path d="M200 0 L120 225 L280 225Z" fill="#fff6c8" opacity=".08"/>
+    <path d="M175 0 L225 0 L330 225 L70 225Z" fill="#fff6c8" opacity=".07"/>
     <rect x="0" y="182" width="400" height="43" fill="#2a1f18"/>
     <g class="lean-in">${don(200, 196, 1.15, false)}</g>
     ${bread(80, 190, 0.9)}${bread(110, 196, 0.8)}${bread(330, 192, 0.85)}`),
