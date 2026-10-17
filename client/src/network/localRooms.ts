@@ -125,6 +125,7 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
       })),
       now,
       new Map(Object.entries(room.runs ?? {}).map(([userId, r]) => [userId, r.nickname])),
+      room.runs !== undefined, // a race has started: only the people who raced
     );
   };
 

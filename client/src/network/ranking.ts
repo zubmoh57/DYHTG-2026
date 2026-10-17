@@ -122,20 +122,23 @@ export const LEFT_PLAYER_NAME = 'A duck who left';
  * player shows their latest attempt in it; highest race score first (RunState.raceScore), then a
  * finish before a non-finish, then the faster time. Players with no attempt yet are on 0, "waiting".
  * Someone who raced and then left the room keeps their row, marked `left`; `names` remembers the
- * nicknames of players no longer in `players`.
+ * nicknames of players no longer in `players`. With `onlyRacers` (once a race has started), players
+ * with no attempt in it are left off: a big-screen host, or someone who joined after it began.
  */
 export function rankStandings(
   players: readonly ScoreboardPlayer[],
   attempts: readonly ScoreboardAttempt[],
   serverNowMs: number,
   names: ReadonlyMap<string, string> = new Map(),
+  onlyRacers = false,
 ): ScoreboardEntry[] {
   const latestByUser = new Map<string, ScoreboardAttempt>();
   for (const a of attempts) {
     const l = latestByUser.get(a.userId);
     if (!l || a.createdMs > l.createdMs) latestByUser.set(a.userId, a);
   }
-  const rows = players.map((player): ScoreboardEntry => {
+  const listed = onlyRacers ? players.filter((p) => latestByUser.has(p.userId)) : players;
+  const rows = listed.map((player): ScoreboardEntry => {
     const a = latestByUser.get(player.userId);
     const lastContact = Math.max(player.lastSeenMs, a?.updatedMs ?? 0);
     return {

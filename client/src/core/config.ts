@@ -47,7 +47,7 @@ export const CONFIG = {
     shotIntervalSec: 0.75, // faster rounds (Tejas): 3 quick shots, then Ready → Aim → FIRE
     /**
      * Reaction attack: Ready → Aim → Fire (green), decided by Zubair's sim/boss.ts.
-     * Agreed: early press or Space held at Fire = 1 damage (that lives in sim/boss.ts).
+     * Agreed: early press or a button held through Fire = 1 damage (that lives in sim/boss.ts).
      * Ready/Aim last one second each, followed by a random wait before Fire.
      * The wait range is tuning; the damage curve and no-response outcome remain UNDECIDED.
      */
@@ -78,5 +78,7 @@ export const CONFIG = {
   },
   flow: {
     countdownSec: 3,
+    /** Room races are sprints (Tejas): every section at this share of its full length, about 45 s a race. */
+    roomCourseScale: 0.45,
   },
 } as const;

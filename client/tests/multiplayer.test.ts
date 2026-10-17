@@ -133,19 +133,41 @@ describe('races in test rooms', () => {
     guest.publishRun(update({ status: 'running', score: 1 })); // stale, after the run ended
     expect(seen[0]).toEqual({ name: 'Mayank', score: 30000, state: 'failed' });
 
-    // The host reopens the room: results stay on the board, and late players can join.
+    // The host reopens the room: results stay on the board, and late players can join. The board is
+    // still the last race's results, so the newcomer isn't on it until they race.
     await host.reopenRoom();
     expect(seen[0].score).toBe(30000);
     const late = createLocalRooms(store);
     await late.joinRoom(room.code, 'Rayyan');
-    expect(seen).toHaveLength(3);
+    expect(seen.map((r) => r.name)).toEqual(['Mayank', 'Tejas']);
 
-    // The next race starts everyone from 0 again.
+    // The next race clears the board; everyone who races shows up on it, the newcomer included.
     const starts: number[] = [];
     guest.onStart((at) => starts.push(at));
     await host.startRoom();
     expect(starts).toHaveLength(1);
-    expect(seen.every((r) => r.score === 0)).toBe(true);
+    expect(seen).toEqual([]);
+    late.publishRun(update({ score: 500 }));
+    guest.publishRun(update({ score: 400 }));
+    expect(seen.map((r) => [r.name, r.score])).toEqual([
+      ['Rayyan', 500],
+      ['Mayank', 400],
+    ]);
+  });
+
+  it('keeps someone who never raced (a big-screen host) off the board once a race has started', async () => {
+    const store = memoryRoomStore();
+    const host = createLocalRooms(store);
+    const guest = createLocalRooms(store);
+    const room = await host.createRoom('Big Screen');
+    await guest.joinRoom(room.code, 'Mayank');
+    let seen: string[] = [];
+    guest.onStandings((rows) => (seen = rows.map((r) => r.nickname)));
+    expect(seen).toEqual(['Big Screen', 'Mayank']); // before any race, everyone on 0
+
+    await host.startRoom();
+    guest.publishRun(update({ status: 'failed', score: 9000 }));
+    expect(seen).toEqual(['Mayank']);
   });
 
   it('only lets the host reopen the room', async () => {

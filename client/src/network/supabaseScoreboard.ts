@@ -67,7 +67,7 @@ export function watchScoreboard(rooms: OnlineRoomApi, listener: (entries: Scoreb
     // Only the latest race counts (Tejas): attempts created since it started. None before the first race.
     const since = rooms.raceStartServerMs();
     const race = since === null ? [] : [...attempts.values()].filter((a) => a.createdMs >= since - RACE_SLACK_MS);
-    const entries = rankStandings(players, race, clock.serverNow(), names);
+    const entries = rankStandings(players, race, clock.serverNow(), names, since !== null);
     const key = JSON.stringify(entries);
     if (key === lastKey) return;
     lastKey = key;

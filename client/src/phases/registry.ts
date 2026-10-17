@@ -12,16 +12,24 @@ import { createSwimPhase } from './underwater/SwimPhase';
 
 /** Dev only: `?short` cuts the runners and the swim to a fifth of their length (a ~15 s run). */
 const SHORT = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('short');
-const length = (full: number) => (SHORT ? Math.round(full / 5) : full);
 
-export const PHASES: Partial<Record<Stage, PhaseFactory>> = {
-  RUNNER_1: createRunner({ section: 'runner1', length: length(CONFIG.runner.runner1Distance), crumbs: false, heart: false, dog: true, pond: true, maxSpeed: CONFIG.runner.maxSpeed }),
-  DIVE: createDive(),
-  UNDERWATER: createSwimPhase(length(CONFIG.swim.distance)),
-  SURFACE_RETURN: createSurfaceReturn(),
-  RUNNER_2: createRunner({ section: 'runner2', length: length(CONFIG.runner.runner2Distance), crumbs: true, heart: true, boost: true, maxSpeed: CONFIG.runner.runner2MaxSpeed }),
-  BOSS: createBossPhase(),
-};
+/** Every stage, with the runners and the swim at `scale` of their full length. */
+export function buildPhases(scale: number): Partial<Record<Stage, PhaseFactory>> {
+  const length = (full: number) => Math.round(full * scale);
+  return {
+    RUNNER_1: createRunner({ section: 'runner1', length: length(CONFIG.runner.runner1Distance), crumbs: false, heart: false, dog: true, pond: true, maxSpeed: CONFIG.runner.maxSpeed }),
+    DIVE: createDive(),
+    UNDERWATER: createSwimPhase(length(CONFIG.swim.distance)),
+    SURFACE_RETURN: createSurfaceReturn(),
+    RUNNER_2: createRunner({ section: 'runner2', length: length(CONFIG.runner.runner2Distance), crumbs: true, heart: true, boost: true, maxSpeed: CONFIG.runner.runner2MaxSpeed }),
+    BOSS: createBossPhase(),
+  };
+}
+
+/** Solo practice: the full run. */
+export const PHASES = buildPhases(SHORT ? 0.2 : 1);
+/** Room races: a sprint, so a race (and a judge's turn) stays short. Everyone in a room uses the same lengths. */
+export const ROOM_PHASES = buildPhases(SHORT ? 0.2 : CONFIG.flow.roomCourseScale);
 
 /** `?phase=` values for jumping straight into a stage while developing. */
 export const DEV_JUMPS: Record<string, Stage> = {

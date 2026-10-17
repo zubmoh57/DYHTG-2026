@@ -19,15 +19,16 @@ import { OfflineRoomService } from './network/offlineRoomService';
 import { isSupabaseConfigured } from './network/supabase';
 import { createSupabaseRooms } from './network/supabaseRooms';
 import type { RoomApi, RoomInfo, RunUpdate } from './network/types';
-import { DEV_JUMPS, PHASES } from './phases/registry';
+import { DEV_JUMPS, PHASES, ROOM_PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
 import { mountEndings } from './ui/endings';
 import { mountHud } from './ui/hud';
-import { INTRO_SEC, playIntro } from './ui/intro';
+import { playIntro } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountRaceResults } from './ui/raceResults';
 import { mountResults } from './ui/results';
 import { mountScoreboard } from './ui/scoreboard';
+import { mountStadium } from './ui/stadium';
 import { mountStageInstructions } from './ui/stageInstructions';
 import { mountTouchControls } from './ui/touchControls';
 import { lockZoom } from './ui/zoomLock';
@@ -100,6 +101,7 @@ const backToPond = () => {
   race = null;
   stopLiveBoard?.();
   stopLiveBoard = null;
+  stadium.hide();
   game.toLobby();
   lobby.show();
   if (lobby.room()?.isHost) {
@@ -116,6 +118,8 @@ mountResults(ui, game, {
   inRace: () => race !== null,
 });
 mountRaceResults(ui, game, { rooms, race: () => race, onBack: backToPond });
+// Big-screen mode: the projector laptop shows the race live and the podium (it doesn't play).
+const stadium = mountStadium(ui, rooms, () => backToPond());
 
 const lobby = mountLobby(ui, {
   rooms,
@@ -123,21 +127,28 @@ const lobby = mountLobby(ui, {
   footer: audio.volumeControl,
   onSolo: () => {
     lobby.hide();
-    // The story first (Vansh), then Bill starts running. Skip or SPACE gets you there sooner.
+    // The story first (Vansh), then Bill starts running. Skip, A or D gets you there sooner.
     game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
+    game.setPhases(PHASES);
     playIntro(ui, audio, runNow);
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
+    if (lobby.bigScreen()) {
+      // This screen watches: the same shared start, shown as a 3-2-1 over the live track.
+      if (game.stage !== 'LOBBY') game.toLobby();
+      stadium.start(room, performance.now() + (startAtEpochMs - Date.now()));
+      return;
+    }
     race = room;
     lastPublish = 0;
     if (game.run.status === 'running' || game.stage === 'COUNTDOWN') game.toLobby(); // a straggler from the last race
     game.setIdentity({ roomId: room.code, playerId: room.playerId, seed: room.seed });
-    // Convert the shared wall-clock start time into this tab's performance.now() clock. Everyone watches
-    // the same intro on a timeline that ends on the shared start, then the run begins with no 3-2-1.
-    const startsAt = performance.now() + (startAtEpochMs - Date.now()) + INTRO_SEC * 1000;
+    game.setPhases(ROOM_PHASES); // a sprint, the same for everyone in the room
+    // Convert the shared wall-clock start time into this tab's performance.now() clock: everyone gets
+    // the same 3-2-1 and starts together. (The story intro plays in solo practice; races go straight in.)
+    const startsAt = performance.now() + (startAtEpochMs - Date.now());
     game.startAttempt({ countdownEndsAt: startsAt });
-    playIntro(ui, audio, () => {}, { endsAt: startsAt });
 
     // The live board in the corner while racing (both online and test rooms).
     stopLiveBoard?.();

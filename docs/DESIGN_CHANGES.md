@@ -53,9 +53,22 @@ The boss timings, damage curve, no-press outcome, bullet aim and the 300,000-poi
 1. **Title screen:** a looping chase (Bill, Biscuit and the Don) behind the logo. Solo practice, Create room, or Join with a code.
 2. **Create room → the pond lobby.** Every player is a Bill floating on a pond, in their own coat colour. The host's screen shows a **QR code**; phones scan it, land on a "You're invited" screen, type a name and jump in.
 3. **Leaderboard** beside the pond: everyone on 0 before the first race.
-4. **The host starts the race.** Everyone watches the story intro on a shared clock, then plays the same course on their own device. On phones the controls are **◀ ▶ buttons** for lanes and a **scope button** to fire (still two actions: only the current mode's buttons show).
+4. **The host starts the race.** Everyone gets the same **3-2-1** and plays a **sprint** of the course (every section at 45% length, about 45 s) on their own device. The story intro plays in solo practice, not before room races, so judges get straight into the action.
 5. **End of a run:** your score, your place (live while others are still racing) and the standings. Then **back to the pond** (button, or after 20 s), where the leaderboard shows the last race. The host can start the next race; new players can join between races.
+
+**Big-screen mode** (`ui/stadium.ts`): on the laptop that's on the projector, switch on "📺 Big-screen mode" in the pond lobby (laptops only; remembered per tab). That screen then doesn't play: it shows every racer as a duck moving along one track (road → pond → road → Don Crumbs), a live clock, a QR to join the next race, and commentary ("Mayank dives into the pond!", "Don Crumbs got Rayyan!", lead changes). When everyone is done (or the host presses "End race"), a podium rises with confetti and the Don roasts whoever came last. Once a race has started, the leaderboard lists only the people who raced, so the big screen and late joiners never sit on it at 0.
 
 **Race score** (`RunState.raceScore`, ranks the leaderboard): 25,000 per section completed (pro rata; the boss by damage dealt) + 250 per coin + breadcrumbs. A finish adds 50,000 + 5,000 per life left + 1,000 per second under 2:00, so any finish beats any run that died.
 
-**Needs:** Supabase keys in `client/.env.local` and both migrations run (the second, `20261017210000_race_rounds.sql`, lets a room race again). Phones must be on the same Wi-Fi as the laptop running `npm run dev` (it now listens on the network, and the QR uses the laptop's network address). `VITE_PUBLIC_URL` overrides the QR's address for a deployed build.
+**Needs:** Supabase keys in `client/.env.local` and every migration run on the live project (`supabase/apply_to_live.sql` brings it up to date; `race_rounds` is what lets a room race again). Phones must be on the same Wi-Fi as the laptop running `npm run dev` (it now listens on the network, and the QR uses the laptop's network address). `VITE_PUBLIC_URL` overrides the QR's address for a deployed build.
+
+## Two buttons, strictly
+
+The whole game is two buttons, **A and D**, and nothing else (SPACE no longer does anything):
+
+- Dodging: A = left, D = right.
+- Boss FIRE: **either** button fires. Pressing during Ready/Aim is "too early"; a button pressed during the wind-up and still held at FIRE is a miss. A lane key still held from dodging doesn't count.
+- Instruction cards, the story intro and the endings: either button continues.
+- Phones: the **left and right halves of the screen** are the two buttons. A marker in each corner shows what a tap does right now (◀ ▶, a red 🎯 at FIRE, a green TAP on a card).
+
+That makes the pitch line literal: every decision in the game is left or right. It also means anyone with any two buttons can play: two keys, two thumbs, or two accessibility switches.

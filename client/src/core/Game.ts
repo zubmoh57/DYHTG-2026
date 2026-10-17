@@ -67,7 +67,7 @@ export interface FrameInfo {
   inputMode: InputMode;
   /** Seconds left on the countdown, or 0 when not counting down. */
   countdownSec: number;
-  /** Gameplay stays paused until a fresh Space press dismisses the instructions. */
+  /** Gameplay stays paused until a fresh press of either button dismisses the instructions. */
   waitingForInstructions: boolean;
 }
 
@@ -95,7 +95,7 @@ export class Game {
 
   private readonly pipeline: RenderPipeline;
   private readonly state: RunState;
-  private readonly phases: Partial<Record<Stage, PhaseFactory>>;
+  private phases: Partial<Record<Stage, PhaseFactory>>;
   private readonly eventListeners = new Set<(e: GameEvent) => void>();
   private readonly frameListeners = new Set<(f: FrameInfo) => void>();
   private readonly detachKeyboard: () => void;
@@ -172,6 +172,15 @@ export class Game {
     this.state.roomId = identity.roomId;
     this.state.playerId = identity.playerId;
     this.state.seed = identity.seed;
+  }
+
+  /** Which stages to play: the full run (solo) or the sprint (room races). Only between runs, like setIdentity. */
+  setPhases(phases: Partial<Record<Stage, PhaseFactory>>): void {
+    if (this.state.status === 'running' || this.state.stage === 'COUNTDOWN') {
+      console.warn('[core] setPhases() ignored during a run');
+      return;
+    }
+    this.phases = phases;
   }
 
   /** A fresh attempt on the same course: used for the first start and for every retry. */
