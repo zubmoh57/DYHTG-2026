@@ -1,5 +1,7 @@
 # TWO KEYS — final game design and build brief (JPMC challenge)
 
+> ⚠️ **Superseded.** The team is building **Dollar Duck**: see `docs/PROJECT_BRIEF.md` and `docs/TEAM_SPLIT.md`. This file is kept only for history. Bill's character API in §9 still applies.
+
 > **Working title:** *Two Keys* (rename once the character is chosen)
 > **Challenge:** "Make something fun which uses two buttons or actions maximum."
 > **Pitch:** *"Two keys. The whole game. Simple controls, real risks, and a ghost of the best run chasing you to the finish."*

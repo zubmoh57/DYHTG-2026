@@ -1,0 +1,127 @@
+// Shared contracts (brief §11, TEAM_SPLIT §4). Owned by Tejas: ask before changing anything here,
+// because every phase, the HUD and the network code are written against these types.
+
+import type * as THREE from 'three';
+import type { CharacterView } from '../render/character';
+import type { SeededRandom } from './seededRandom';
+
+/** Every state the game can be in, in run order. Only core/Game.ts moves between them. */
+export type Stage =
+  | 'LOBBY'
+  | 'COUNTDOWN'
+  | 'RUNNER_1'
+  | 'SUB_ENTRY'
+  | 'UNDERWATER'
+  | 'SURFACE_RETURN'
+  | 'RUNNER_2'
+  | 'BOSS' // the boss phase switches between dodging and attacking itself, via requestInputMode()
+  | 'FINISHED'
+  | 'FAILED';
+
+/** The four gameplay sections the scoreboard talks about. */
+export type PhaseId = 'runner1' | 'underwater' | 'runner2' | 'boss';
+
+export type RunStatus = 'waiting' | 'running' | 'failed' | 'finished';
+
+/** lanes = A/D only. timing = Space only. A, D and Space are never all live at once (brief §3). */
+export type InputMode = 'none' | 'lanes' | 'timing';
+
+export type FailReason = 'lives' | 'oxygen';
+
+export type RandomSection = 'runner1' | 'runner2' | 'underwater' | 'boss';
+
+/** Rebuilt once per frame by core/Input.ts and already filtered by the current input mode. */
+export interface InputSnapshot {
+  /** Fresh A keydown this frame (key repeat ignored). Always false outside 'lanes' mode. */
+  leftPressed: boolean;
+  /** Fresh D keydown this frame. Always false outside 'lanes' mode. */
+  rightPressed: boolean;
+  /** Fresh Space keydown this frame. Always false outside 'timing' mode. */
+  spacePressed: boolean;
+  /** Space is physically held down right now, in any mode. The boss needs it: holding Space = Miss. */
+  spaceHeld: boolean;
+}
+
+export interface RunState {
+  roomId: string;
+  playerId: string;
+  attemptId: string;
+  seed: number;
+  stage: Stage;
+  /** The gameplay section the player is in (or heading into), for the scoreboard. */
+  phase: PhaseId;
+  status: RunStatus;
+  elapsedMs: number;
+  lives: number;
+  oxygen: number;
+  score: number;
+  /** Distance travelled in the current section, and that section's total, for progress bars. */
+  phaseDistance: number;
+  phaseLength: number;
+  bossHealth: number;
+  /** Runner speed carries from Runner 1 into Runner 2 (brief §8). */
+  runnerSpeed: number;
+  invulnerableUntilMs: number;
+  heartCollected: boolean;
+  failReason: FailReason | null;
+}
+
+/** Everything other parts of the game may want to react to: HUD, audio, network, effects. */
+export type GameEvent =
+  | { type: 'stageChanged'; stage: Stage; previous: Stage }
+  | { type: 'attemptStarted'; attemptId: string }
+  | { type: 'inputModeChanged'; mode: InputMode }
+  | { type: 'damaged'; lives: number }
+  | { type: 'lifeGained'; lives: number }
+  | { type: 'oxygenLost'; oxygen: number }
+  | { type: 'scoreChanged'; score: number; delta: number }
+  | { type: 'bossDamaged'; damage: number; health: number }
+  | { type: 'runFinished'; elapsedMs: number; score: number }
+  | { type: 'runFailed'; reason: FailReason; elapsedMs: number }
+  /** Phase-specific moments for sound and effects, e.g. 'laneChange', 'boost', 'perfect', 'shot'. */
+  | { type: 'cue'; name: string };
+
+/** What every phase gets. Phases read through it and ASK core to change shared state. */
+export interface PhaseContext {
+  readonly scene: THREE.Scene;
+  setCamera(camera: THREE.Camera): void;
+  /** The default third-person camera, already in the scene's coordinate system. */
+  readonly defaultCamera: THREE.PerspectiveCamera;
+  readonly input: Readonly<InputSnapshot>;
+  readonly run: Readonly<RunState>;
+  /** A fresh generator for that section, seeded from the room seed. Same every attempt. */
+  rng(section: RandomSection): SeededRandom;
+  /** Bill. Core resets his position, pose and visibility when a stage starts. */
+  readonly bill: CharacterView;
+
+  requestInputMode(mode: InputMode): void;
+  /** Returns false (and does nothing) while invulnerable. Fails the run at 0 lives. */
+  damagePlayer(): boolean;
+  addScore(points: number): void;
+  /** Fails the run at 0 oxygen. */
+  loseOxygen(): void;
+  /** The heart. Returns false if it was already collected this attempt. */
+  gainLife(): boolean;
+  setRunnerSpeed(speed: number): void;
+  setPhaseProgress(distance: number, length: number): void;
+  /** Clamps at 0. The first hit that reaches 0 stops the timer and finishes the run, once. */
+  damageBoss(amount: number): void;
+  /** Move on to the next stage. */
+  completePhase(): void;
+  failRun(reason: FailReason): void;
+  emit(event: GameEvent): void;
+}
+
+/**
+ * A gameplay stage. Core creates a NEW instance every time the stage starts (so a retry can never
+ * see old state), calls enter(), update() every frame, then exit() and dispose() when it ends.
+ * Remove everything you added to the scene in exit(). Never start your own animation loop.
+ */
+export interface Phase {
+  enter(): void;
+  update(dtSeconds: number): void;
+  exit(): void;
+  dispose(): void;
+}
+
+export type PhaseFactory = (ctx: PhaseContext) => Phase;
