@@ -165,8 +165,9 @@ export function createSwimPhase(length: number): PhaseFactory {
         particles.update(dt, step);
 
         camX += (lanes.x * 0.55 - camX) * Math.min(1, dt * 6);
-        camera.position.set(camX, 2.1 + Math.sin(time * 0.8) * 0.06, 5.6);
-        camera.lookAt(camX * 0.5, -0.3, -10);
+        // A little high and back, looking well ahead, so the coming coins and creatures are in view.
+        camera.position.set(camX, 3 + Math.sin(time * 0.8) * 0.06, 6.4);
+        camera.lookAt(camX * 0.5, -0.6, -12);
 
         ctx.setPhaseProgress(distance, course.length);
         if (!finished && distance >= course.length) {
