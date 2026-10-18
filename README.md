@@ -7,6 +7,9 @@
 <p align="center"><b>Two buttons. A whole room of players. One duck in debt to the mafia.</b><br>
 A 3D browser game for the JPMorgan Chase challenge: <i>make something fun that uses two buttons or actions maximum.</i></p>
 
+<p align="center"><b>▶ Play now: <a href="https://duck-run-lac.vercel.app">duck-run-lac.vercel.app</a></b><br>
+<a href="https://github.com/zubmoh57/DYHTG-2026/actions/workflows/ci.yml"><img src="https://github.com/zubmoh57/DYHTG-2026/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
+
 ---
 
 ## The pitch
@@ -50,7 +53,7 @@ Prefer to play alone? **Solo practice** opens with the story as a short animated
 | **Into the pond** | A pond appears in the road; Bill dives in. | |
 | **Underwater** | Collect coins and dodge jellyfish and pufferfish. Coins buy a power-up for later: **20** = shield, **50** = speed boost, **100** = laser +50%. | ~15 s |
 | **Back to the surface** | Bill's eyes turn to dollar signs; he grabs a dollar on a fishing line and gets yanked back up. | |
-| **Stage 2 · Back on the road** | Faster now. Breadcrumbs for points, a heart for an extra life. | ~15 s |
+| **Stage 2 · Back on the road** | Faster now. Breadcrumbs are worth **5,000** points each, and a heart gives an extra life. | ~15 s |
 | **Boss · Don Crumbs** | Dodge three aimed shots, then *Ready… Aim… FIRE!* Hit the button fast to laser the Don. Repeat until one of you goes down. | |
 
 You have 3 lives. The **score** rewards how far you got, coins and breadcrumbs. Beating the Don adds a big bonus, plus extra for every second under two minutes and every life left, so any win outranks any run that didn't make it. Each stage starts with a short card explaining what to do.
@@ -113,7 +116,7 @@ The database's security rules have their own suite: `supabase/tests/rls_test.sh`
 - **[Supabase](https://supabase.com)** for rooms: anonymous sign-in, Postgres with row-level security (players can only write their own runs), Realtime for live updates, and a server clock so everyone starts on the same beat.
 - **Phones:** two-half touch controls, zoom locked, and graphics quality that adapts to keep the frame rate up.
 - **Sound** is synthesised live with the Web Audio API: the music and every effect, with no audio files.
-- **Tested:** 150+ unit tests across game rules, input, courses, rooms, ranking and the big screen, plus 60 database security checks.
+- **Tested:** 150+ unit tests across game rules, input, courses, rooms, ranking and the big screen, plus 60 database security checks. GitHub Actions runs the tests and the build on every push to `main` and `dev`.
 
 ```
 client/src/
@@ -128,6 +131,12 @@ client/src/
 supabase/    database migrations, the live update script, security tests
 docs/        design docs (start with DESIGN_CHANGES.md)
 ```
+
+## AI usage
+
+**AI usage scale: 4.** We designed Duck Run ourselves: the characters, the story, every stage and the rules were drawn on paper before any code was written. We then used **Claude Code (Claude Opus 5.5)**, **Codex (GPT-6.1 Sol)** and **Codex (GPT-6 Astra)** to help build it, and play-tested it throughout. The full breakdown is in our [AI report](docs/Team%2046%20AI%20Report.pdf).
+
+Our presentation is in [docs/duck-run-judges-deck.pptx](docs/duck-run-judges-deck.pptx).
 
 ## Team 46 (aka Team Monster)
 
