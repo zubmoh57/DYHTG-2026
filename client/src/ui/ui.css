@@ -974,28 +974,38 @@ html {
   .intro .film .card.end-card button.big { margin-top: 10px; padding: 12px 14px; font-size: 16px; }
 }
 
-/* A phone held upright: the film fills the screen, the 16:9 picture sits in the upper middle, and
-   every line of the story stacks underneath it in big type (film.ts puts them in .shot-talk), so the
-   words never cover the characters and are easy to read. */
+/* A phone held upright: the film fills the screen. The picture is the middle two-thirds of the 16:9
+   art, full width and half as big again, centred on each shot's characters (Shot.focus, set by
+   film.ts as --focus); every line of the story stacks underneath it in big type (film.ts puts them
+   in .shot-talk), so the words never cover the characters. The whole thing sits mid-screen. */
 @media (max-aspect-ratio: 4/5) {
   .film {
     width: 100vw;
     height: 100dvh;
     aspect-ratio: auto;
+    /* The full art's width: 1.5x the screen, less on short screens so the words still fit below. */
+    --art-w: max(100vw, min(150vw, calc((100dvh - 290px) * 16 / 9)));
+    --pic-h: calc(var(--art-w) * 9 / 16);
+    --pic-top: max(64px, calc((100dvh - var(--pic-h) - 240px) / 2));
   }
 
   .shot-stage {
     inset: auto 0;
-    top: 34%;
-    height: calc(100vw * 9 / 16);
-    translate: 0 -50%;
+    top: var(--pic-top);
+    height: var(--pic-h);
+  }
+
+  .shot-cam {
+    inset: 0 auto;
+    width: var(--art-w);
+    left: clamp(calc(100vw - var(--art-w)), calc(50vw - var(--focus, 0.5) * var(--art-w)), 0px);
   }
 
   .shot-talk {
     position: absolute;
     left: 16px;
     right: 16px;
-    top: calc(34% + 100vw * 9 / 32 + 18px);
+    top: calc(var(--pic-top) + var(--pic-h) + 18px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1010,8 +1020,8 @@ html {
     text-align: center;
   }
 
-  .shot-talk .subtitle { font-size: 19px; }
-  .shot-talk .bubble { font-size: 21px; }
+  .shot-talk .subtitle { font-size: 20px; }
+  .shot-talk .bubble { font-size: 22px; }
 
   /* The speech bubble's tail points up at the picture. */
   .shot-talk .bubble::after {

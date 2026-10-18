@@ -45,6 +45,11 @@ export interface Shot<S extends string = string> {
   sound?: SoundName;
   /** A big comic sound effect, e.g. WOOF!, popped over the art at [x%, y%] at time t. */
   fx?: { text: string; at: [number, number]; t: number };
+  /**
+   * A phone held upright shows the middle two-thirds of the picture, bigger, centred on this point
+   * (% across the art, default 50), so the shot's characters stay in view.
+   */
+  focus?: number;
 }
 
 export const OUT_BACK = 'cubic-bezier(0.2, 1.4, 0.4, 1)';
@@ -79,6 +84,7 @@ function playShot(shot: Shot, frame: HTMLElement, art: Record<string, string>): 
   // stack under it instead of on top of the art, where it would cover the characters.
   const upright = typeof matchMedia !== 'undefined' && matchMedia(UPRIGHT).matches;
   const talk = upright ? el('div', { className: 'shot-talk' }) : null;
+  if (upright) node.style.setProperty('--focus', String((shot.focus ?? 50) / 100));
   cam.innerHTML =
     shot.scene === 'title'
       ? `<div class="intro-title"><span>${(shot.title ?? ['DUCK', 'RUN'])[0]}</span><span>${(shot.title ?? ['DUCK', 'RUN'])[1]}</span></div>`
