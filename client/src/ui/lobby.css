@@ -307,6 +307,7 @@ button.big.start {
   }
   .title-logo {
     order: 0;
+    margin-top: 52px; /* clear of the sound button in the top-right corner */
   }
   .title-menu {
     order: 2;
@@ -740,20 +741,58 @@ button.big.start {
   animation: start-pulse 1.6s ease-in-out infinite;
 }
 
+/* Big-screen mode switch (host only), in the comic style of the story and endings (Vansh). */
 .screen-toggle {
-  margin-top: 8px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.3);
-  color: #fff;
-  font-size: 13px;
-  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 12px 8px 14px;
+  border: 3px solid #111;
+  border-radius: 12px;
+  background: #fffaf0;
+  box-shadow: 4px 4px 0 #111;
+  color: #111;
+  font: 900 14px/1 'Arial Black', Impact, sans-serif;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
 }
 
-.screen-toggle.on {
-  background: #ffd23f;
-  color: #3a2a10;
+.screen-toggle:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 #111; }
+.screen-toggle:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #111; }
+
+.screen-toggle .switch {
+  position: relative;
+  width: 46px;
+  height: 24px;
+  border: 3px solid #111;
+  border-radius: 999px;
+  background: #cfc6b4;
+  transition: background 0.2s;
 }
+
+.screen-toggle .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #111;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.screen-toggle .state {
+  min-width: 2.4em;
+  text-align: left;
+  color: #8a7f6a;
+}
+
+.screen-toggle.on .switch { background: #ffcf33; }
+.screen-toggle.on .knob { transform: translateX(22px); }
+.screen-toggle.on .state { color: #111; }
 
 .action-hint {
   margin: 8px 0 0;
@@ -1045,4 +1084,51 @@ body.touch #ui > .keys {
   text-align: center;
   font-family: 'Trebuchet MS', Arial, sans-serif;
   animation: none;
+}
+
+/* Small phones (e.g. 360x640): a shorter scene so the menu and the sound slider fit without scrolling. */
+@media (max-aspect-ratio: 1/1) and (max-height: 700px) {
+  .title-screen > div:first-child {
+    min-height: 100px;
+  }
+}
+
+/* A phone turned sideways (wide but short): logo on the left, a compact menu on the right, so the
+   whole title screen fits without scrolling. */
+@media (min-aspect-ratio: 1/1) and (max-height: 520px) {
+  .title-screen {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    align-content: center;
+    gap: 6px 16px;
+    padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  }
+  .title-logo {
+    margin: 0;
+    flex: 1 1 0;
+  }
+  .title-logo h1 {
+    font-size: clamp(40px, 12vh, 64px);
+  }
+  .title-menu {
+    margin: 0 44px 0 0; /* clear of the sound button in the top-right corner */
+    align-self: center;
+    width: min(340px, 46vw);
+    padding: 10px 12px 12px;
+  }
+  .title-menu input {
+    margin: 4px 0 8px;
+    padding: 8px 10px;
+  }
+  .lobby-screen .title-menu button.big {
+    margin-top: 6px;
+    padding: 9px 12px;
+    font-size: 15px;
+  }
+  .title-footer {
+    flex-basis: 100%;
+    margin: 0;
+  }
 }

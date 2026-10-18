@@ -21,6 +21,8 @@ export interface LobbyOptions {
   onSolo(nickname: string): void;
   /** The host pressed Start: everyone's countdown ends at `startAtEpochMs`. */
   onRoomStart(room: RoomInfo, startAtEpochMs: number): void;
+  /** You're in a room that has already raced (you joined late, or came back after a race). */
+  onRoomHadRace?(): void;
   /** Pre-filled join code, e.g. from a ?room=QUAK link or QR code. */
   initialCode?: string;
   /** Extra controls under the home menu, e.g. the volume slider. */
@@ -286,31 +288,50 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
     const waiting = el('p', { className: 'waiting', text: 'Waiting for the host to start…' });
     const action = el('div', { className: 'pond-action' }, [error]);
     // Big-screen mode: on the laptop that's on the projector, watch the race instead of playing it.
-    const screenToggle = el('button', { className: 'screen-toggle' });
+    // A real on/off switch, only on the host's screen (Vansh).
+    const toggleState = el('span', { className: 'state' });
+    const screenToggle = el('button', { className: 'screen-toggle' }, [
+      el('span', { className: 'label', text: '📺 Big-screen mode' }),
+      el('span', { className: 'switch' }, [el('span', { className: 'knob' })]),
+      toggleState,
+    ]);
+    screenToggle.setAttribute('role', 'switch');
     onButton(screenToggle, () => {
       bigScreen = !bigScreen;
       saveBigScreen(bigScreen);
       render();
     });
 
+    let reportedRace = false;
     const render = () => {
-      count.textContent = `${players.length} duck${players.length === 1 ? '' : 's'} in the pond`;
-      pond.update(players, info.playerId, offline);
+      // Anyone who left or has been gone 15 s is out of the room: not in the pond, not on the board.
+      const here = players.filter((p) => p.id === info.playerId || !offline.has(p.id));
+      count.textContent = `${here.length} duck${here.length === 1 ? '' : 's'} in the pond`;
+      pond.update(here, info.playerId, offline);
 
       // Before the first race: rows for players missing from the feed (just joined), so everyone is on 0.
       // After a race the board is that race's results, so only the people who raced.
       const known = new Set(rows.map((r) => r.userId));
       const hadRace = rows.some((r) => r.state !== 'waiting');
-      const extra = players
+      if (hadRace && !reportedRace) {
+        reportedRace = true;
+        options.onRoomHadRace?.();
+      }
+      const extra = here
         .filter((p) => !hadRace && !known.has(p.id))
         .map<ScoreboardEntry>((p) => ({
           rank: 0, userId: p.id, nickname: p.nickname, state: 'waiting', timeMs: null, score: 0,
           phase: 'runner1', progress: 0, disconnected: false,
         }));
-      const present = new Set(players.map((p) => p.id));
-      const all = [...rows.filter((r) => present.has(r.userId) || r.state !== 'waiting'), ...extra].map((r, i) => ({ ...r, rank: i + 1 }));
-      // The big screen isn't racing, so it isn't on its own board.
-      board.update(bigScreen ? all.filter((r) => r.userId !== info.playerId).map((r, i) => ({ ...r, rank: i + 1 })) : all, info.playerId);
+      const present = new Set(here.map((p) => p.id));
+      // Someone who finished or crashed out and then left keeps their result, as on the big screen's
+      // podium (stadium.ts): the winner closing the tab mustn't vanish from the results.
+      const counts = (r: ScoreboardEntry) => present.has(r.userId) || r.state === 'finished' || r.state === 'failed';
+      const all = [...rows.filter(counts), ...extra].map((r, i) => ({ ...r, rank: i + 1 }));
+      // The big screen isn't racing, so it isn't on its own board. (Only the host's screen can be one.)
+      const isHost = room?.isHost ?? false;
+      const watching = bigScreen && isHost;
+      board.update(watching ? all.filter((r) => r.userId !== info.playerId).map((r, i) => ({ ...r, rank: i + 1 })) : all, info.playerId);
 
       const raced = all.some((r) => r.state !== 'waiting');
       const racing = all.filter((r) => r.state === 'running' && !r.disconnected).length;
@@ -321,22 +342,19 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
           ? 'Highest score wins. Race again?'
           : 'Everyone starts on 0. Highest score wins.';
 
-      const isHost = room?.isHost ?? false;
-      screenToggle.textContent = bigScreen
-        ? '📺 Big-screen mode: ON · this screen shows the race live'
-        : '📺 Big-screen mode: OFF · this screen plays too';
+      toggleState.textContent = bigScreen ? 'ON' : 'OFF';
+      screenToggle.setAttribute('aria-checked', String(bigScreen));
+      screenToggle.title = bigScreen ? 'This screen shows the race live' : 'This screen plays too';
       screenToggle.classList.toggle('on', bigScreen);
-      const hint = bigScreen
-        ? isHost
-          ? 'Everyone races on their phones; this screen shows the race and the podium.'
-          : 'This screen will show the race live when the host starts.'
+      const hint = watching
+        ? 'Everyone races on their phones; this screen shows the race and the podium.'
         : isHost
           ? players.length < 2 ? 'You can start alone, or wait for friends to scan in.' : 'Everyone races the same course.'
           : 'Same course for everyone. Get ready!';
       action.replaceChildren(
         ...(isHost ? [start] : [waiting]),
         el('p', { className: 'action-hint', text: hint }),
-        ...(isTouch() ? [] : [screenToggle]),
+        ...(isHost && !isTouch() ? [screenToggle] : []),
         error,
       );
     };
@@ -393,6 +411,7 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
       root.appendChild(screen);
     },
     room: () => room,
-    bigScreen: () => bigScreen,
+    // Only the host's screen can be the big screen.
+    bigScreen: () => bigScreen && (room?.isHost ?? false),
   };
 }

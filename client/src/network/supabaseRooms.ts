@@ -98,6 +98,8 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
   let players: RoomPlayer[] = [];
   let playersKey = '';
   /** The start time already handed to the lobby, in Date.now() time. */
+  /** The room whose first race (the one with the story) has been started, so rematches skip it. */
+  let storyPlayedIn: string | null = null;
   let startAt: number | null = null;
   /** The server start time of the race already announced: one announcement per race. */
   let announcedServerStart: number | null = null;
@@ -375,8 +377,9 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
       const room = current;
       if (!room) throw new Error('You are not in a room.');
       if (!room.info.isHost) throw new Error('Only the host can start.');
-      const start = () =>
-        call<RoomRow | null>('start_room', { p_room_id: room.roomId, p_delay_ms: CONFIG.flow.countdownSec * 1000 });
+      // The room's first race leaves time for everyone to watch the story; rematches start quickly.
+      const delaySec = storyPlayedIn === room.roomId ? CONFIG.flow.countdownSec : CONFIG.flow.storyStartSec;
+      const start = () => call<RoomRow | null>('start_room', { p_room_id: room.roomId, p_delay_ms: delaySec * 1000 });
       let row: RoomRow | null;
       try {
         row = await start();
@@ -386,6 +389,7 @@ export function createSupabaseRooms(supabase: SupabaseClient = getSupabase()): O
         await call<unknown>('reset_room', { p_room_id: room.roomId });
         row = await start();
       }
+      storyPlayedIn = room.roomId;
       // Realtime announces it too, if this reply is lost.
       if (room === current && typeof row?.start_at_ms === 'number') announceStart(row.start_at_ms);
     },

@@ -67,7 +67,7 @@ export const SHOTS: Shot<SceneName>[] = [
     dur: 2.2,
     sound: 'bark',
     camera: ['scale(1)', 'scale(1.08)'],
-    fx: { text: 'WOOF!', at: [24, 22], t: 0.35 },
+    fx: { text: 'WOOF!', at: [26, 40], t: 0.35 },
     moves: [
       { sel: '.a-dog', dur: 0.35, easing: OUT_BACK, frames: [{ transform: 'scale(0.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }] },
       { sel: '.a-dog', start: 0.35, dur: 0.12, iterations: 5, frames: shake(7) },
@@ -145,6 +145,19 @@ export interface IntroOptions {
 }
 
 /** Show the intro over `root`, then call onDone (after the last shot, a skip, or at endsAt). */
-export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): void {
-  playFilm(root, audio, SHOTS, SCENES, onDone, { ...options, music: 'intro' });
+export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): { stop(): void } {
+  return playFilm(root, audio, SHOTS, SCENES, onDone, { ...options, music: 'intro' });
+}
+
+/** Before a rematch in a room: one quick title card, ROUND 2 and so on, ending on the shared start. */
+export function playRoundCard(root: HTMLElement, audio: AudioHandle, round: number, endsAt: number): void {
+  const card: Shot<SceneName> = {
+    scene: 'title',
+    title: ['ROUND', String(round)],
+    dur: 2.5,
+    sound: 'titleHit',
+    camera: ['scale(1.15)', 'scale(1)'],
+    lines: [{ text: 'The debt is still unpaid. RUN!', t: 0.4 }],
+  };
+  playFilm(root, audio, [card], SCENES, () => {}, { endsAt });
 }

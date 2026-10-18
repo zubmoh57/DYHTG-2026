@@ -222,6 +222,28 @@ html {
   opacity: 0.8;
 }
 
+/* "+5,000" under the score when a breadcrumb is picked up (hud.ts). */
+.hud .score-box {
+  position: relative;
+}
+
+.hud .score-pop {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  color: #ffd98a;
+  font-size: 22px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: score-pop 0.9s ease-out forwards;
+}
+
+@keyframes score-pop {
+  from { transform: translateY(8px) scale(0.6); opacity: 0; }
+  20% { transform: translateY(0) scale(1.15); opacity: 1; }
+  to { transform: translateY(-12px) scale(1); opacity: 0; }
+}
+
 .hud .boss {
   position: absolute;
   top: 44px;
@@ -536,6 +558,7 @@ html {
 }
 
 .shot { position: absolute; inset: 0; }
+.shot-stage { position: absolute; inset: 0; overflow: hidden; }
 
 .shot-cam {
   position: absolute;
@@ -679,6 +702,8 @@ html {
 .intro.held .shot .subtitle,
 .intro.held .shot .bubble,
 .intro.held .shot .fx { opacity: 0 !important; transition: opacity 0.3s; }
+/* The big YOU WIN! title would peek out around the results card: let the card have the frame. */
+.intro.held .intro-title { opacity: 0; transition: opacity 0.3s; }
 
 .film .panel.end-card {
   z-index: 2;
@@ -712,6 +737,54 @@ html {
   from { transform: translate(-50%, -50%) scale(0.3) rotate(-6deg); opacity: 0; }
   to { transform: translate(-50%, -50%); opacity: 1; }
 }
+
+/* The room race's standings card (ui/raceResults.ts) gets the same comic look on the ending film. */
+.intro .film .card.end-card {
+  padding: 18px 20px;
+  border: 4px solid #111;
+  border-radius: 10px;
+  background: #fffaf0;
+  box-shadow: 8px 8px 0 #111;
+  animation: end-card-in 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.intro .film .card.end-card .verdict {
+  margin: 0 0 4px;
+  font: 900 clamp(24px, 4vw, 36px)/1.05 'Arial Black', Impact, sans-serif;
+  color: #ffcf33;
+  -webkit-text-stroke: 2px #111;
+  text-shadow: 4px 4px 0 #111;
+  text-transform: uppercase;
+}
+
+.intro .film .card.end-card .my-score {
+  margin: 6px 0 0;
+  font: 900 40px/1 'Arial Black', Impact, sans-serif;
+  color: #f39c32;
+  -webkit-text-stroke: 1.5px #111;
+}
+
+.intro .film .card.end-card .my-place,
+.intro .film .card.end-card .standings { font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif; }
+
+.intro .film .card.end-card button.big {
+  display: block;
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 14px 18px;
+  border: 3px solid #111;
+  border-radius: 12px;
+  background: #ffcf33;
+  box-shadow: 5px 5px 0 #111;
+  color: #111;
+  font: 900 19px/1 'Arial Black', Impact, sans-serif;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.intro .film .card.end-card button.big:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #111; }
+.intro .film .card.end-card button.big:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 #111; }
 
 /* A thin video-style progress bar along the bottom. */
 .intro-progress {
@@ -845,4 +918,86 @@ html {
 .speech.on {
   transform: translateX(-50%) scale(1);
   opacity: 1;
+}
+
+/* On a phone the film is a short 16:9 strip, so the end card would scroll inside it and hide its
+   button. Pin the card to the screen instead, and let only the standings list scroll. */
+.intro .film .end-card {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+}
+
+.intro .film .end-card > * { flex: none; }
+
+.intro .film .card.end-card .standings,
+.intro .film .card.end-card .scoreboard,
+.intro .film .card.end-card ul,
+.intro .film .card.end-card ol {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-height: 520px), (max-width: 520px) {
+  .intro .film .card.end-card { padding: 12px 14px; }
+  .intro .film .card.end-card .verdict { font-size: 22px; }
+  .intro .film .card.end-card .my-score { font-size: 30px; }
+  .intro .film .card.end-card button.big { margin-top: 10px; padding: 12px 14px; font-size: 16px; }
+}
+
+/* A phone held upright: the film fills the screen, the 16:9 picture sits in the upper middle, and
+   every line of the story stacks underneath it in big type (film.ts puts them in .shot-talk), so the
+   words never cover the characters and are easy to read. */
+@media (max-aspect-ratio: 4/5) {
+  .film {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+  }
+
+  .shot-stage {
+    inset: auto 0;
+    top: 34%;
+    height: calc(100vw * 9 / 16);
+    translate: 0 -50%;
+  }
+
+  .shot-talk {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: calc(34% + 100vw * 9 / 32 + 18px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .shot-talk .subtitle,
+  .shot-talk .bubble {
+    position: static;
+    translate: none;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .shot-talk .subtitle { font-size: 19px; }
+  .shot-talk .bubble { font-size: 21px; }
+
+  /* The speech bubble's tail points up at the picture. */
+  .shot-talk .bubble::after {
+    bottom: auto;
+    top: -18px;
+    left: 50%;
+    right: auto;
+    border-top-color: transparent;
+    border-bottom: 14px solid #111;
+    translate: -50% 0;
+  }
+
+  .shot.scene-title .shot-talk .subtitle { white-space: normal; translate: none; }
+  .intro-title { font-size: 15vw; -webkit-text-stroke-width: 3px; }
 }

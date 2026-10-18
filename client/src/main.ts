@@ -12,6 +12,7 @@
 import './ui/ui.css';
 import './ui/stageInstructions.css';
 import { mountAudio } from './audio';
+import { CONFIG } from './core/config';
 import { Game } from './core/Game';
 import { raceScore } from './core/RunState';
 import type { RunState } from './core/types';
@@ -20,10 +21,9 @@ import { isSupabaseConfigured } from './network/supabase';
 import { createSupabaseRooms } from './network/supabaseRooms';
 import type { RoomApi, RoomInfo, RunUpdate } from './network/types';
 import { DEV_JUMPS, PHASES, ROOM_PHASES } from './phases/registry';
-import { mountCountdown } from './ui/countdown';
 import { mountEndings } from './ui/endings';
 import { mountHud } from './ui/hud';
-import { playIntro } from './ui/intro';
+import { playIntro, playRoundCard } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountRaceResults } from './ui/raceResults';
 import { mountResults } from './ui/results';
@@ -50,7 +50,6 @@ const game = new Game({
 
 const ui = document.getElementById('ui')!;
 mountHud(ui, game);
-mountCountdown(ui, game);
 mountStageInstructions(ui, game);
 mountTouchControls(ui, game);
 lockZoom(); // no double-tap or pinch zoom on phones
@@ -59,6 +58,16 @@ mountEndings(ui, game, audio);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).
 // No 3-2-1 anywhere: the story intro is the build-up, and a retry drops you straight back in.
 const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });
+/** The room start the story was last played for, so a repeated start announcement can't replay it. */
+let storyPlayedFor: number | null = null;
+/** Whether that start is the room's first race, the one with the story (and its extra time). */
+let storyRace = false;
+/** The story plays once per visit in solo: later solo runs go straight in. */
+let storySeen = false;
+/** The story shown to a late joiner while they wait in the pond. */
+let catchUpStory: { stop(): void } | null = null;
+/** Races started in each room this visit, for the ROUND 2, ROUND 3… card. */
+const roundsIn = new Map<string, number>();
 
 // --- Room races --------------------------------------------------------------------------------
 
@@ -130,14 +139,53 @@ const lobby = mountLobby(ui, {
     // The story first (Vansh), then Bill starts running. Skip, A or D gets you there sooner.
     game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
     game.setPhases(PHASES);
+    if (storySeen) return runNow();
+    storySeen = true;
     playIntro(ui, audio, runNow);
+  },
+  // Joined a room after its first race (Vansh): you missed the story, so watch it now in the pond.
+  // It's skippable, and a race starting cuts it short.
+  onRoomHadRace: () => {
+    // This room has raced at least once, so the next start is at least round 2 here too.
+    const code = lobby.room()?.code;
+    if (code) roundsIn.set(code, Math.max(roundsIn.get(code) ?? 0, 1));
+    if (storySeen) return;
+    storySeen = true;
+    catchUpStory = playIntro(ui, audio, () => (catchUpStory = null));
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
+    catchUpStory?.stop();
+    catchUpStory = null;
+    // A room's first race starts far enough ahead for the story (Vansh): every screen plays it on a
+    // shared clock that ends exactly as the race begins. Once per start, never twice.
+    // "First race" must come out the same on every screen, or a phone that heard about the start a
+    // few seconds late would skip the story's extra time and race ahead of everyone. So it's decided
+    // by the room's history (a race already seen here, or reported by the lobby), not by the timing.
+    const newStart = storyPlayedFor !== startAtEpochMs;
+    const round = (roundsIn.get(room.code) ?? 0) + (newStart ? 1 : 0);
+    if (newStart) {
+      storyPlayedFor = startAtEpochMs;
+      roundsIn.set(room.code, round);
+      storyRace = round === 1;
+    }
+    // Convert the shared wall-clock start time into this tab's performance.now() clock, so every
+    // screen starts the race at the same moment. Story races all add the same extra time to read.
+    const startsAt =
+      performance.now() + (startAtEpochMs - Date.now()) + (storyRace ? CONFIG.flow.storyExtraSec * 1000 : 0);
+    if (newStart) {
+      if (storyRace) {
+        storySeen = true;
+        playIntro(ui, audio, () => {}, { endsAt: startsAt });
+      } else {
+        // A rematch: a quick comic title card covers the few seconds before the start, not a 3-2-1.
+        playRoundCard(ui, audio, round, startsAt);
+      }
+    }
     if (lobby.bigScreen()) {
       // This screen watches: the same shared start, shown as a 3-2-1 over the live track.
       if (game.stage !== 'LOBBY') game.toLobby();
-      stadium.start(room, performance.now() + (startAtEpochMs - Date.now()));
+      stadium.start(room, startsAt);
       return;
     }
     race = room;
@@ -145,9 +193,6 @@ const lobby = mountLobby(ui, {
     if (game.run.status === 'running' || game.stage === 'COUNTDOWN') game.toLobby(); // a straggler from the last race
     game.setIdentity({ roomId: room.code, playerId: room.playerId, seed: room.seed });
     game.setPhases(ROOM_PHASES); // a sprint, the same for everyone in the room
-    // Convert the shared wall-clock start time into this tab's performance.now() clock: everyone gets
-    // the same 3-2-1 and starts together. (The story intro plays in solo practice; races go straight in.)
-    const startsAt = performance.now() + (startAtEpochMs - Date.now());
     game.startAttempt({ countdownEndsAt: startsAt });
 
     // The live board in the corner while racing (both online and test rooms).
@@ -162,6 +207,12 @@ const lobby = mountLobby(ui, {
 });
 
 game.start();
+
+// Closing the tab or leaving the page leaves the room at once, so nobody lingers as a ghost duck.
+// (If that call can't get out in time, everyone else drops the player after 15 s without contact.)
+window.addEventListener('pagehide', () => {
+  if (lobby.room()) void rooms.leaveRoom().catch(() => {});
+});
 
 // Dev only: in a production build players can't skip stages from the URL.
 const jump = import.meta.env.DEV ? params.get('phase') : null;

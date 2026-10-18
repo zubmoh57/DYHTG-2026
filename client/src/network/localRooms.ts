@@ -102,6 +102,8 @@ export interface LocalRoomApi extends RoomApi {
 
 export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRoomApi {
   let info: RoomInfo | null = null;
+  /** The room whose first race (the one with the story) has been started, so rematches skip it. */
+  let storyPlayedIn: string | null = null;
   let lastStartAt: number | null = null;
   const playerListeners = new Set<(players: RoomPlayer[]) => void>();
   const startListeners = new Set<(startAt: number) => void>();
@@ -206,8 +208,11 @@ export function createLocalRooms(store: RoomStore = browserRoomStore()): LocalRo
 
     async startRoom() {
       if (!info?.isHost) throw new Error('Only the host can start.');
+      // The room's first race leaves time for everyone to watch the story; rematches start quickly.
+      const delaySec = storyPlayedIn === info.code ? CONFIG.flow.countdownSec : CONFIG.flow.storyStartSec;
+      storyPlayedIn = info.code;
       update((room) => {
-        room.startAt = Date.now() + CONFIG.flow.countdownSec * 1000;
+        room.startAt = Date.now() + delaySec * 1000;
         room.runs = {};
       });
     },

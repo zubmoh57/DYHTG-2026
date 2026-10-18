@@ -35,7 +35,7 @@ There is no third key. Because any two buttons will do, the game also works one-
 1. **Host:** open the game on the laptop connected to the projector → *Create room*. You land in the **pond lobby**, where every player floats as a Bill in their own coloured suit.
 2. **Everyone else:** scan the **QR code** on screen, type a name, tap *Jump in*. Your duck splashes into the pond.
 3. **Host:** switch on **📺 Big-screen mode** so the projector watches instead of playing, then press **Start race**.
-4. Everyone gets the same 3-2-1 and runs the **same course** (each room has its own seed) on their own phone.
+4. The first race opens with the **story**, playing on every screen at once, then everyone starts together on the **same course** (each room has its own seed) on their own phone. Rematches skip the story: a quick *ROUND 2* card and you're off.
 5. The **big screen** shows every duck moving along one track, a live clock and commentary: *"Mayank dives into the pond!"*, *"Don Crumbs got Rayyan!"*, *"Vansh takes the lead!"*.
 6. When everyone has finished or been knocked out, a **podium** rises with confetti, and the Don roasts whoever came last.
 7. Everyone heads **back to the pond**, and the host can start the next race. New players can scan in between races.
@@ -112,7 +112,7 @@ The database's security rules have their own suite: `supabase/tests/rls_test.sh`
 - **Seeded courses:** a room's seed builds the same logs, coins and creatures for everyone, and every course is checked to always have a way through.
 - **[Supabase](https://supabase.com)** for rooms: anonymous sign-in, Postgres with row-level security (players can only write their own runs), Realtime for live updates, and a server clock so everyone starts on the same beat.
 - **Phones:** two-half touch controls, zoom locked, and graphics quality that adapts to keep the frame rate up.
-- **Sound** is synthesised live with the Web Audio API: music, effects, and a tick for every countdown.
+- **Sound** is synthesised live with the Web Audio API: the music and every effect, with no audio files.
 - **Tested:** 150+ unit tests across game rules, input, courses, rooms, ranking and the big screen, plus 60 database security checks.
 
 ```
