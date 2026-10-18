@@ -105,8 +105,8 @@ The database's security rules have their own suite: `supabase/tests/rls_test.sh`
 | `?room=QUAK` | Join screen for room QUAK (what the QR codes open) |
 | `?local` | Force offline test rooms, even with Supabase keys |
 | `?touch` | Show the phone controls on a laptop |
-| `?short` | Every stage at a fifth of its length, for quick testing |
-| `?phase=boss` | Jump straight to a stage (`runner1`, `swim`, `runner2`, `boss`…) |
+| `?short` | Every stage at a fifth of its length, for quick testing (`npm run dev` only) |
+| `?phase=boss` | Jump straight to a stage: `runner1`, `swim`, `runner2`, `boss`… (`npm run dev` only) |
 | `?quality=low` | Pin the graphics quality (`high`, `medium`, `low`); otherwise it adapts to the device |
 
 ## How it's built

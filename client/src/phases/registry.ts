@@ -10,8 +10,12 @@ import { createDive } from './transitions/DivePhase';
 import { createSurfaceReturn } from './transitions/SurfaceReturnPhase';
 import { createSwimPhase } from './underwater/SwimPhase';
 
-/** Dev only: `?short` cuts the runners and the swim to a fifth of their length (a ~15 s run). */
-const SHORT = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('short');
+/**
+ * Dev only: `?short` cuts the runners and the swim to a fifth of their length (a ~15 s run). Ignored in a
+ * production build, so nobody can shorten their own course in a room race.
+ */
+const SHORT =
+  import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('short');
 
 /** Every stage, with the runners and the swim at `scale` of their full length. */
 export function buildPhases(scale: number): Partial<Record<Stage, PhaseFactory>> {

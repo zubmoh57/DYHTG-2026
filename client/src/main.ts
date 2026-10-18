@@ -2,7 +2,7 @@
 //
 // URLs:
 //   /?room=QUAK         the join screen for room QUAK (what the lobby's QR code opens)
-// Dev URLs:
+// Dev URLs (?phase and ?short only work in `npm run dev`, never in a production build):
 //   /?phase=boss        jump straight into a stage (runner1, dive, swim, surface-return, runner2, boss)
 //   /?short             runners and the swim at a fifth of their length
 //   /?seed=42           solo practice on a specific course (rooms supply their own seed)
@@ -163,7 +163,8 @@ const lobby = mountLobby(ui, {
 
 game.start();
 
-const jump = params.get('phase');
+// Dev only: in a production build players can't skip stages from the URL.
+const jump = import.meta.env.DEV ? params.get('phase') : null;
 if (jump && DEV_JUMPS[jump]) {
   lobby.hide();
   game.startAttempt({ jumpTo: DEV_JUMPS[jump] });
