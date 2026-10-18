@@ -82,10 +82,6 @@ Rooms run on [Supabase](https://supabase.com). Without the two keys below, the g
 
    Use the **publishable (anon)** key, never the secret one. The game refuses to start with a secret key.
 
-### Deploying
-
-Any static host works. On Vercel, set the **root directory** to `client`, add the two `VITE_SUPABASE_*` variables, and set `VITE_PUBLIC_URL` to the site's address so room QR codes point at it.
-
 ### Scripts (in `client/`)
 
 | Command | Does |
