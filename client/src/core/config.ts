@@ -85,6 +85,11 @@ export const CONFIG = {
      */
     storyStartSec: 15,
     /**
+     * The first race starts this much after the shared start time, on every screen, so the story has
+     * room to breathe: about 25 s in all, a little slower than solo so players can read every line.
+     */
+    storyExtraSec: 10,
+    /**
      * Room races use the full course (1). Below 1 shortens every section for a quicker party race,
      * e.g. 0.5 for about 25 s before the boss.
      */

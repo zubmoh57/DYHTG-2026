@@ -141,12 +141,13 @@ const lobby = mountLobby(ui, {
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
-    // Convert the shared wall-clock start time into this tab's performance.now() clock, so every
-    // screen starts the race at the same moment.
-    const startsAt = performance.now() + (startAtEpochMs - Date.now());
     // A room's first race starts far enough ahead for the story (Vansh): every screen plays it on a
     // shared clock that ends exactly as the race begins. Once per start, never twice.
     const storyRace = startAtEpochMs - Date.now() > (CONFIG.flow.storyStartSec - 4) * 1000;
+    // Convert the shared wall-clock start time into this tab's performance.now() clock, so every
+    // screen starts the race at the same moment. Story races all add the same extra time to read.
+    const startsAt =
+      performance.now() + (startAtEpochMs - Date.now()) + (storyRace ? CONFIG.flow.storyExtraSec * 1000 : 0);
     if (storyPlayedFor !== startAtEpochMs) {
       storyPlayedFor = startAtEpochMs;
       const round = (roundsIn.get(room.code) ?? 0) + 1;
