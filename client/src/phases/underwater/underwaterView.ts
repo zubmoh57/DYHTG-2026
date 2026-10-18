@@ -309,19 +309,22 @@ export function makeJelly(): THREE.Group {
   return group;
 }
 
-/** A spiky pufferfish that puffs up and down. */
+/**
+ * A spiky pufferfish that puffs up and down. Coral orange with dark red spikes, so it can't be
+ * mistaken for a gold coin when the two sit side by side.
+ */
 export function makePuffer(): THREE.Group {
   const group = new THREE.Group();
   const body = new THREE.Group();
   body.name = 'body';
-  const skin = std(0xffcc3d, { roughness: 0.45 });
-  const belly = std(0xfff2c2, { roughness: 0.5 });
+  const skin = std(0xff6a3d, { roughness: 0.45, emissive: 0x7a2210, emissiveIntensity: 0.35 });
+  const belly = std(0xffe3d6, { roughness: 0.5 });
   body.add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), skin));
   const under = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), belly);
   under.position.y = -0.06;
   body.add(under);
   const spikeGeo = new THREE.ConeGeometry(0.05, 0.22, 8);
-  const spikeMat = std(0xe8a51f, { roughness: 0.5 });
+  const spikeMat = std(0xa62a17, { roughness: 0.5 });
   const n = 36;
   for (let i = 0; i < n; i++) {
     // Fibonacci sphere: even spacing over the body.
@@ -339,12 +342,12 @@ export function makePuffer(): THREE.Group {
     eye.position.set(side * 0.22, 0.14, 0.4);
     const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), std(0x111111, { roughness: 0.2 }));
     pupil.position.set(side * 0.22, 0.14, 0.51);
-    const fin = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 8), std(0xffb020));
+    const fin = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 8), std(0xff8a5c));
     fin.scale.set(0.3, 1, 0.8);
     fin.position.set(side * 0.5, -0.05, 0);
     body.add(eye, pupil, fin);
   }
-  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.025, 8, 16), std(0xd9534f));
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.025, 8, 16), std(0x5a1a10));
   mouth.position.set(0, -0.06, 0.5);
   body.add(mouth);
   group.add(body);
