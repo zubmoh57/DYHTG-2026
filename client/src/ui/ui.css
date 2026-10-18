@@ -230,6 +230,21 @@ html {
   transform: translateX(-50%);
 }
 
+/* Phones: the HUD's left column (hearts, coins, stage) runs down to ~128px, so the boss bar goes below it,
+   and a room's live scoreboard below that. */
+@media (max-width: 600px) {
+  .hud .boss {
+    top: 132px;
+    left: 4px; /* the HUD box starts 12px in, so this is 16px from the screen edge */
+    width: calc(100vw - 32px);
+    transform: none;
+  }
+  /* #ui > beats scoreboard.css, which loads after this file */
+  #ui > .scoreboard {
+    top: 186px;
+  }
+}
+
 .hud .boss-bar {
   height: 14px;
   border-radius: 7px;

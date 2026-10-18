@@ -283,6 +283,14 @@ button.big.start {
   text-decoration: underline;
 }
 
+/* Wide screens (laptops, projectors): the menu sits to the right so it doesn't cover Bill, who runs in the middle. */
+@media (min-aspect-ratio: 5/4) {
+  .title-menu {
+    align-self: flex-end;
+    margin-right: max(32px, 7vw);
+  }
+}
+
 /* Tall screens (phones): the scene becomes a band between the logo and the menu, so Bill isn't
    blown up behind the buttons. Sky above and mud below line up with the band's own sky and road. */
 @media (max-aspect-ratio: 1/1) {
