@@ -43,6 +43,7 @@ export const DEATH_FILMS: Record<DamageCause, Shot<EndingScene>[]> = {
   log: [
     {
       scene: 'logHit',
+      focus: 55,
       dur: 2.8,
       camera: ['scale(1)', 'scale(1.15) translate(6%, -4%)'],
       fx: { text: 'BONK!', at: [60, 28], t: 0.45 },
@@ -64,6 +65,7 @@ export const DEATH_FILMS: Record<DamageCause, Shot<EndingScene>[]> = {
   dog: [
     {
       scene: 'dogBite',
+      focus: 47,
       dur: 1.8,
       camera: ['scale(1)', 'scale(1.15)'],
       fx: { text: 'CHOMP!', at: [52, 18], t: 0.45 },
@@ -78,6 +80,7 @@ export const DEATH_FILMS: Record<DamageCause, Shot<EndingScene>[]> = {
     },
     {
       scene: 'dogAfter',
+      focus: 60,
       dur: 2.4,
       camera: ['scale(1.1)', 'scale(1)'],
       moves: [
@@ -93,6 +96,7 @@ export const DEATH_FILMS: Record<DamageCause, Shot<EndingScene>[]> = {
   boss: [
     {
       scene: 'bossShot',
+      focus: 55,
       dur: 1.9,
       camera: ['scale(1)', 'scale(1.1) translate(8%, 0)'],
       fx: { text: 'BANG!', at: [55, 24], t: 0.4 },
@@ -115,6 +119,7 @@ export const DEATH_FILMS: Record<DamageCause, Shot<EndingScene>[]> = {
     },
     {
       scene: 'bossAfter',
+      focus: 52,
       dur: 2.6,
       camera: ['scale(1)', 'scale(1.1)'],
       moves: [

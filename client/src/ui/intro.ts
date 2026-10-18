@@ -21,6 +21,7 @@ const coinPickups: Move[] = POND_COINS.map(([cx], i) => ({
 export const SHOTS: Shot<SceneName>[] = [
   {
     scene: 'bill',
+    focus: 33,
     dur: 2.3,
     camera: ['scale(1.05)', 'scale(1.2) translate(-2%, 2%)'],
     moves: [
@@ -64,6 +65,7 @@ export const SHOTS: Shot<SceneName>[] = [
   },
   {
     scene: 'dog',
+    focus: 60,
     dur: 2.2,
     sound: 'bark',
     camera: ['scale(1)', 'scale(1.08)'],
@@ -117,6 +119,7 @@ export const SHOTS: Shot<SceneName>[] = [
   },
   {
     scene: 'run',
+    focus: 42,
     dur: 2.3,
     sound: 'quack',
     camera: ['scale(1.1)', 'scale(1.1) translate(-1%, 0)'],

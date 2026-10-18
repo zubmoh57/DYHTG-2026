@@ -222,15 +222,16 @@ html {
   opacity: 0.8;
 }
 
-/* "+5,000" under the score when a breadcrumb is picked up (hud.ts). */
+/* "+5,000" beside the score when a breadcrumb is picked up (hud.ts); to its left, so it never
+   lands on a room's live board below. */
 .hud .score-box {
   position: relative;
 }
 
 .hud .score-pop {
   position: absolute;
-  right: 0;
-  top: 100%;
+  right: calc(100% + 10px);
+  bottom: 0;
   color: #ffd98a;
   font-size: 22px;
   white-space: nowrap;
@@ -261,9 +262,34 @@ html {
     width: calc(100vw - 32px);
     transform: none;
   }
-  /* #ui > beats scoreboard.css, which loads after this file */
+  /* A room's live board: small, tucked into the top-right corner under the timer and score, and only
+     the top 3 plus you, so it never covers the road. (#ui > beats scoreboard.css, which loads later.) */
   #ui > .scoreboard {
-    top: 186px;
+    top: 66px;
+    right: 8px;
+    width: min(172px, 46vw);
+    padding: 4px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  #ui > .scoreboard .scoreboard-title {
+    margin-bottom: 1px;
+    font-size: 9px;
+  }
+
+  #ui > .scoreboard .row {
+    gap: 5px;
+    padding: 1px 0;
+  }
+
+  #ui > .scoreboard .row:nth-child(n + 4):not(.me) {
+    display: none;
+  }
+
+  /* In a room race the boss bar goes below that board. */
+  #ui:has(> .scoreboard) .hud .boss {
+    top: 160px;
   }
 }
 
@@ -948,28 +974,38 @@ html {
   .intro .film .card.end-card button.big { margin-top: 10px; padding: 12px 14px; font-size: 16px; }
 }
 
-/* A phone held upright: the film fills the screen, the 16:9 picture sits in the upper middle, and
-   every line of the story stacks underneath it in big type (film.ts puts them in .shot-talk), so the
-   words never cover the characters and are easy to read. */
+/* A phone held upright: the film fills the screen. The picture is the middle two-thirds of the 16:9
+   art, full width and half as big again, centred on each shot's characters (Shot.focus, set by
+   film.ts as --focus); every line of the story stacks underneath it in big type (film.ts puts them
+   in .shot-talk), so the words never cover the characters. The whole thing sits mid-screen. */
 @media (max-aspect-ratio: 4/5) {
   .film {
     width: 100vw;
     height: 100dvh;
     aspect-ratio: auto;
+    /* The full art's width: 1.5x the screen, less on short screens so the words still fit below. */
+    --art-w: max(100vw, min(150vw, calc((100dvh - 290px) * 16 / 9)));
+    --pic-h: calc(var(--art-w) * 9 / 16);
+    --pic-top: max(64px, calc((100dvh - var(--pic-h) - 240px) / 2));
   }
 
   .shot-stage {
     inset: auto 0;
-    top: 34%;
-    height: calc(100vw * 9 / 16);
-    translate: 0 -50%;
+    top: var(--pic-top);
+    height: var(--pic-h);
+  }
+
+  .shot-cam {
+    inset: 0 auto;
+    width: var(--art-w);
+    left: clamp(calc(100vw - var(--art-w)), calc(50vw - var(--focus, 0.5) * var(--art-w)), 0px);
   }
 
   .shot-talk {
     position: absolute;
     left: 16px;
     right: 16px;
-    top: calc(34% + 100vw * 9 / 32 + 18px);
+    top: calc(var(--pic-top) + var(--pic-h) + 18px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -984,8 +1020,8 @@ html {
     text-align: center;
   }
 
-  .shot-talk .subtitle { font-size: 19px; }
-  .shot-talk .bubble { font-size: 21px; }
+  .shot-talk .subtitle { font-size: 20px; }
+  .shot-talk .bubble { font-size: 22px; }
 
   /* The speech bubble's tail points up at the picture. */
   .shot-talk .bubble::after {
