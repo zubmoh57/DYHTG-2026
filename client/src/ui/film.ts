@@ -7,6 +7,7 @@
 import type { AudioHandle } from '../audio';
 import type { MusicTrack, SoundName } from '../audio/soundMap';
 import { el, onButton } from './dom';
+import { usesTouch } from './touchControls';
 
 export interface Line {
   /** Speaker name; narration has none and becomes a subtitle box. */
@@ -171,7 +172,8 @@ export function playFilm(
 
   const frame = el('div', { className: 'film' });
   const skip = el('button', { className: 'intro-skip', text: 'Skip ⏭' });
-  const hint = el('div', { className: 'intro-hint', text: 'A / D ▸' });
+  // Phones have no A and D keys: they tap the screen to move on.
+  const hint = el('div', { className: 'intro-hint', text: usesTouch() ? 'TAP ▸' : 'A / D ▸' });
   const progress = el('div', { className: 'intro-progress' }, [el('span')]);
   const overlay = el('div', { className: 'intro' }, [frame, progress, hint, skip]);
   const bar = progress.firstElementChild as HTMLElement;
