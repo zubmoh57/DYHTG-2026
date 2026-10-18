@@ -7,7 +7,7 @@
 import type { Game } from '../core/Game';
 import { onButton } from '../ui/dom';
 import { Music } from './music';
-import { countdownTicked, musicFor, musicMood, soundsFor, type MusicTrack, type SoundName } from './soundMap';
+import { musicFor, musicMood, soundsFor, type MusicTrack, type SoundName } from './soundMap';
 import { SOUNDS } from './sounds';
 import { Synth } from './synth';
 
@@ -99,13 +99,8 @@ export function mountAudio(root: HTMLElement, game: Game): AudioHandle {
     if (event.type === 'stageChanged') music?.play(wantedTrack());
   });
 
-  let lastCountdown = 0;
-  game.onFrame(({ countdownSec, run }) => {
-    music?.setMood(musicMood(run));
-    // No ticks under the story intro: it covers the countdown in rooms.
-    if (synth && !override && countdownTicked(lastCountdown, countdownSec)) SOUNDS.countdownTick(synth);
-    lastCountdown = countdownSec;
-  });
+  // No 3-2-1 ticks: the story covers the wait before a race, and the run starts with GO.
+  game.onFrame(({ run }) => music?.setMood(musicMood(run)));
 
   const button = document.createElement('button');
   button.type = 'button';
