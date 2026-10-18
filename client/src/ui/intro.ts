@@ -148,3 +148,16 @@ export interface IntroOptions {
 export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): void {
   playFilm(root, audio, SHOTS, SCENES, onDone, { ...options, music: 'intro' });
 }
+
+/** Before a rematch in a room: one quick title card, ROUND 2 and so on, ending on the shared start. */
+export function playRoundCard(root: HTMLElement, audio: AudioHandle, round: number, endsAt: number): void {
+  const card: Shot<SceneName> = {
+    scene: 'title',
+    title: ['ROUND', String(round)],
+    dur: 2.5,
+    sound: 'titleHit',
+    camera: ['scale(1.15)', 'scale(1)'],
+    lines: [{ text: 'The debt is still unpaid. RUN!', t: 0.4 }],
+  };
+  playFilm(root, audio, [card], SCENES, () => {}, { endsAt });
+}

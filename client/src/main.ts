@@ -23,7 +23,7 @@ import type { RoomApi, RoomInfo, RunUpdate } from './network/types';
 import { DEV_JUMPS, PHASES, ROOM_PHASES } from './phases/registry';
 import { mountEndings } from './ui/endings';
 import { mountHud } from './ui/hud';
-import { playIntro } from './ui/intro';
+import { playIntro, playRoundCard } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountRaceResults } from './ui/raceResults';
 import { mountResults } from './ui/results';
@@ -62,6 +62,8 @@ const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });
 let storyPlayedFor: number | null = null;
 /** The story plays once per visit in solo: later solo runs go straight in. */
 let storySeen = false;
+/** Races started in each room this visit, for the ROUND 2, ROUND 3… card. */
+const roundsIn = new Map<string, number>();
 
 // --- Room races --------------------------------------------------------------------------------
 
@@ -145,10 +147,17 @@ const lobby = mountLobby(ui, {
     // A room's first race starts far enough ahead for the story (Vansh): every screen plays it on a
     // shared clock that ends exactly as the race begins. Once per start, never twice.
     const storyRace = startAtEpochMs - Date.now() > (CONFIG.flow.storyStartSec - 4) * 1000;
-    if (storyRace && storyPlayedFor !== startAtEpochMs) {
+    if (storyPlayedFor !== startAtEpochMs) {
       storyPlayedFor = startAtEpochMs;
-      storySeen = true;
-      playIntro(ui, audio, () => {}, { endsAt: startsAt });
+      const round = (roundsIn.get(room.code) ?? 0) + 1;
+      roundsIn.set(room.code, round);
+      if (storyRace) {
+        storySeen = true;
+        playIntro(ui, audio, () => {}, { endsAt: startsAt });
+      } else {
+        // A rematch: a quick comic title card covers the few seconds before the start, not a 3-2-1.
+        playRoundCard(ui, audio, round, startsAt);
+      }
     }
     if (lobby.bigScreen()) {
       // This screen watches: the same shared start, shown as a 3-2-1 over the live track.
