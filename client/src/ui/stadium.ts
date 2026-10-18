@@ -286,9 +286,9 @@ export function mountStadium(root: HTMLElement, rooms: RoomApi, onBack: () => vo
     const tick = () => {
       const now = performance.now();
       const toGo = (startsAt - now) / 1000;
+      // No 3-2-1 (Vansh): the story covers the wait, then just GO!
       if (toGo > 0) {
-        count.textContent = String(Math.ceil(toGo));
-        count.className = 'st-count on';
+        count.className = 'st-count';
       } else if (toGo > -0.9) {
         count.textContent = 'GO!';
         count.className = 'st-count on go';

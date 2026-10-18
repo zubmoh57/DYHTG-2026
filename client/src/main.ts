@@ -21,10 +21,9 @@ import { isSupabaseConfigured } from './network/supabase';
 import { createSupabaseRooms } from './network/supabaseRooms';
 import type { RoomApi, RoomInfo, RunUpdate } from './network/types';
 import { DEV_JUMPS, PHASES, ROOM_PHASES } from './phases/registry';
-import { mountCountdown } from './ui/countdown';
 import { mountEndings } from './ui/endings';
 import { mountHud } from './ui/hud';
-import { INTRO_SEC, playIntro } from './ui/intro';
+import { playIntro } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountRaceResults } from './ui/raceResults';
 import { mountResults } from './ui/results';
@@ -51,7 +50,6 @@ const game = new Game({
 
 const ui = document.getElementById('ui')!;
 mountHud(ui, game);
-mountCountdown(ui, game);
 mountStageInstructions(ui, game);
 mountTouchControls(ui, game);
 lockZoom(); // no double-tap or pinch zoom on phones
@@ -60,6 +58,10 @@ mountEndings(ui, game, audio);
 // Retry restarts only this player, on the same course, without waiting for the host (brief §7).
 // No 3-2-1 anywhere: the story intro is the build-up, and a retry drops you straight back in.
 const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });
+/** The room start the story was last played for, so a repeated start announcement can't replay it. */
+let storyPlayedFor: number | null = null;
+/** The story plays once per visit in solo: later solo runs go straight in. */
+let storySeen = false;
 
 // --- Room races --------------------------------------------------------------------------------
 
@@ -131,15 +133,23 @@ const lobby = mountLobby(ui, {
     // The story first (Vansh), then Bill starts running. Skip, A or D gets you there sooner.
     game.setIdentity({ roomId: 'solo', playerId: 'solo', seed: soloSeed });
     game.setPhases(PHASES);
+    if (storySeen) return runNow();
+    storySeen = true;
     playIntro(ui, audio, runNow);
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
-    // Every screen in the room watches the story together first (Vansh): it plays on a shared clock
-    // that ends 3 s before the race, then everyone gets the same 3-2-1 and starts together.
-    const storyStart = performance.now() + (startAtEpochMs - Date.now());
-    const startsAt = storyStart + INTRO_SEC * 1000;
-    playIntro(ui, audio, () => {}, { endsAt: startsAt - CONFIG.flow.countdownSec * 1000 });
+    // Convert the shared wall-clock start time into this tab's performance.now() clock, so every
+    // screen starts the race at the same moment.
+    const startsAt = performance.now() + (startAtEpochMs - Date.now());
+    // A room's first race starts far enough ahead for the story (Vansh): every screen plays it on a
+    // shared clock that ends exactly as the race begins. Once per start, never twice.
+    const storyRace = startAtEpochMs - Date.now() > (CONFIG.flow.storyStartSec - 4) * 1000;
+    if (storyRace && storyPlayedFor !== startAtEpochMs) {
+      storyPlayedFor = startAtEpochMs;
+      storySeen = true;
+      playIntro(ui, audio, () => {}, { endsAt: startsAt });
+    }
     if (lobby.bigScreen()) {
       // This screen watches: the same shared start, shown as a 3-2-1 over the live track.
       if (game.stage !== 'LOBBY') game.toLobby();
