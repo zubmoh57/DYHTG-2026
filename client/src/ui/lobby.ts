@@ -21,6 +21,8 @@ export interface LobbyOptions {
   onSolo(nickname: string): void;
   /** The host pressed Start: everyone's countdown ends at `startAtEpochMs`. */
   onRoomStart(room: RoomInfo, startAtEpochMs: number): void;
+  /** You're in a room that has already raced (you joined late, or came back after a race). */
+  onRoomHadRace?(): void;
   /** Pre-filled join code, e.g. from a ?room=QUAK link or QR code. */
   initialCode?: string;
   /** Extra controls under the home menu, e.g. the volume slider. */
@@ -300,22 +302,29 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
       render();
     });
 
+    let reportedRace = false;
     const render = () => {
-      count.textContent = `${players.length} duck${players.length === 1 ? '' : 's'} in the pond`;
-      pond.update(players, info.playerId, offline);
+      // Anyone who left or has been gone 15 s is out of the room: not in the pond, not on the board.
+      const here = players.filter((p) => p.id === info.playerId || !offline.has(p.id));
+      count.textContent = `${here.length} duck${here.length === 1 ? '' : 's'} in the pond`;
+      pond.update(here, info.playerId, offline);
 
       // Before the first race: rows for players missing from the feed (just joined), so everyone is on 0.
       // After a race the board is that race's results, so only the people who raced.
       const known = new Set(rows.map((r) => r.userId));
       const hadRace = rows.some((r) => r.state !== 'waiting');
-      const extra = players
+      if (hadRace && !reportedRace) {
+        reportedRace = true;
+        options.onRoomHadRace?.();
+      }
+      const extra = here
         .filter((p) => !hadRace && !known.has(p.id))
         .map<ScoreboardEntry>((p) => ({
           rank: 0, userId: p.id, nickname: p.nickname, state: 'waiting', timeMs: null, score: 0,
           phase: 'runner1', progress: 0, disconnected: false,
         }));
-      const present = new Set(players.map((p) => p.id));
-      const all = [...rows.filter((r) => present.has(r.userId) || r.state !== 'waiting'), ...extra].map((r, i) => ({ ...r, rank: i + 1 }));
+      const present = new Set(here.map((p) => p.id));
+      const all = [...rows.filter((r) => present.has(r.userId)), ...extra].map((r, i) => ({ ...r, rank: i + 1 }));
       // The big screen isn't racing, so it isn't on its own board.
       board.update(bigScreen ? all.filter((r) => r.userId !== info.playerId).map((r, i) => ({ ...r, rank: i + 1 })) : all, info.playerId);
 

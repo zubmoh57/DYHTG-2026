@@ -118,7 +118,9 @@ export function stadiumLanes(players: readonly RoomPlayer[], standings: readonly
     });
   const present = new Set(lanes.map((l) => l.userId));
   for (const s of standings) if (!present.has(s.userId) && s.userId !== meId) lanes.push(s);
-  return lanes;
+  // Players who left (or have been gone 15 s) are out of the room, unless they already finished or
+  // crashed out: their result still counts.
+  return lanes.filter((l) => !(l.left || l.disconnected) || l.state === 'finished' || l.state === 'failed');
 }
 
 export interface StadiumHandle {
