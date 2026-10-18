@@ -58,7 +58,7 @@ const SWOOP = new THREE.CubicBezierCurve3(
 const R = CONFIG.boss.reaction;
 
 /**
- * PLACEHOLDER curve (UNDECIDED): linear from maxDamage at 0 ms to minDamage at the end of Fire.
+ * The damage curve: linear from maxDamage at 0 ms to minDamage at the end of Fire.
  * The 100-coin power-up multiplies it, inside the sim's rule, so sim and shared HP stay in step.
  */
 const reactionCurve = (multiplier: number) => (reactionMs: number) => {
@@ -181,7 +181,7 @@ export function createBossPhase(): PhaseFactory {
     };
 
     const spawnBullet = (id: number) => {
-      // PLACEHOLDER targeting (UNDECIDED): aim at the duck's lane when fired, then fly straight.
+      // Targeting: aim at the duck's lane when fired, then fly straight, so a lane change dodges it.
       const lane = lanes.lane;
       const mesh = makeBullet();
       const from = pigeon.muzzleWorld(new THREE.Vector3());

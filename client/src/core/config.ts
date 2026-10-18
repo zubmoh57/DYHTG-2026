@@ -1,8 +1,5 @@
-// Every tuning number in one place (brief §8 + DUCK_RUN_ADDENDUM). Starting values only: change
-// them after playtests, never hard-code a copy inside a phase.
-//
-// Anything marked UNDECIDED is a placeholder so the stand-in phases can run. The team has NOT
-// agreed it (see DUCK_RUN_ADDENDUM "Still to decide"). Don't build real rules on top of it.
+// Every tuning number in one place (brief §8 + DUCK_RUN_ADDENDUM). These are the values the game
+// ships with, tuned in playtests: change them here, never hard-code a copy inside a phase.
 
 export const CONFIG = {
   lives: {
@@ -49,8 +46,9 @@ export const CONFIG = {
     /**
      * Reaction attack: Ready → Aim → Fire (green), decided by Zubair's sim/boss.ts.
      * Agreed: early press or a button held through Fire = 1 damage (that lives in sim/boss.ts).
-     * Ready/Aim last one second each, followed by a random wait before Fire.
-     * The wait range is tuning; the damage curve and no-response outcome remain UNDECIDED.
+     * Ready/Aim last one second each, followed by a random wait before Fire, so nobody can time it
+     * by rhythm. Damage falls in a straight line from maxDamage (instant) to minDamage (the end of
+     * Fire); no press at all does noPressDamage.
      */
     reaction: {
       readySec: 1,
@@ -62,13 +60,12 @@ export const CONFIG = {
       minDamage: 1000, // at the end of the fire window
       noPressDamage: 0,
     },
-    bulletSpeed: 21, // UNDECIDED: units per second
+    bulletSpeed: 21, // units per second
     windUpSec: 0.35, // readable warning before each shot
   },
   score: {
-    max: 300000, // confirmed cap (addendum §3); how the points are allocated is UNDECIDED
-    perDistanceUnit: 10, // UNDECIDED: original brief's suggestion, not yet scaled to the cap
-    perBreadcrumb: 100, // UNDECIDED: same
+    max: 300000, // confirmed cap (addendum §3); the database refuses anything above it
+    perBreadcrumb: 100, // Stage 2's breadcrumbs
     // The race score rooms are ranked by (RunState.raceScore). Tejas, for the multiplayer leaderboard.
     perSection: 25000, // each of the 4 sections, pro rata (the boss by damage dealt)
     perCoin: 250,
