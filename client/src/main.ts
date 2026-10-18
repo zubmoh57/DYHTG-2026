@@ -12,6 +12,7 @@
 import './ui/ui.css';
 import './ui/stageInstructions.css';
 import { mountAudio } from './audio';
+import { CONFIG } from './core/config';
 import { Game } from './core/Game';
 import { raceScore } from './core/RunState';
 import type { RunState } from './core/types';
@@ -23,7 +24,7 @@ import { DEV_JUMPS, PHASES, ROOM_PHASES } from './phases/registry';
 import { mountCountdown } from './ui/countdown';
 import { mountEndings } from './ui/endings';
 import { mountHud } from './ui/hud';
-import { playIntro } from './ui/intro';
+import { INTRO_SEC, playIntro } from './ui/intro';
 import { mountLobby } from './ui/lobby';
 import { mountRaceResults } from './ui/raceResults';
 import { mountResults } from './ui/results';
@@ -134,10 +135,15 @@ const lobby = mountLobby(ui, {
   },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
+    // Every screen in the room watches the story together first (Vansh): it plays on a shared clock
+    // that ends 3 s before the race, then everyone gets the same 3-2-1 and starts together.
+    const storyStart = performance.now() + (startAtEpochMs - Date.now());
+    const startsAt = storyStart + INTRO_SEC * 1000;
+    playIntro(ui, audio, () => {}, { endsAt: startsAt - CONFIG.flow.countdownSec * 1000 });
     if (lobby.bigScreen()) {
       // This screen watches: the same shared start, shown as a 3-2-1 over the live track.
       if (game.stage !== 'LOBBY') game.toLobby();
-      stadium.start(room, performance.now() + (startAtEpochMs - Date.now()));
+      stadium.start(room, startsAt);
       return;
     }
     race = room;
@@ -145,9 +151,6 @@ const lobby = mountLobby(ui, {
     if (game.run.status === 'running' || game.stage === 'COUNTDOWN') game.toLobby(); // a straggler from the last race
     game.setIdentity({ roomId: room.code, playerId: room.playerId, seed: room.seed });
     game.setPhases(ROOM_PHASES); // a sprint, the same for everyone in the room
-    // Convert the shared wall-clock start time into this tab's performance.now() clock: everyone gets
-    // the same 3-2-1 and starts together. (The story intro plays in solo practice; races go straight in.)
-    const startsAt = performance.now() + (startAtEpochMs - Date.now());
     game.startAttempt({ countdownEndsAt: startsAt });
 
     // The live board in the corner while racing (both online and test rooms).
