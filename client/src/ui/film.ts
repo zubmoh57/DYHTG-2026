@@ -58,6 +58,9 @@ export const shake = (x = 6): Keyframe[] => [
 ];
 const ms = (sec: number) => sec * 1000;
 
+/** Must match the upright-phone media query in ui.css. */
+const UPRIGHT = '(max-aspect-ratio: 4/5)';
+
 /** How many films are on screen. While any is, body has .film-open and the 3D world isn't drawn. */
 let openFilms = 0;
 const setFilmOpen = (open: boolean) => {
@@ -68,12 +71,20 @@ const setFilmOpen = (open: boolean) => {
 /** Build one shot and start all of its animations. Returns them so they can be seeked. */
 function playShot(shot: Shot, frame: HTMLElement, art: Record<string, string>): { node: HTMLElement; anims: Animation[] } {
   const node = el('div', { className: `shot scene-${shot.scene}` });
+  // The 16:9 picture (art, speech bubbles, sound effects). Subtitles sit on the shot itself, so on a
+  // phone held upright they can move into the space above and below the picture (ui.css).
+  const stage = el('div', { className: 'shot-stage' });
   const cam = el('div', { className: 'shot-cam' });
+  // A phone held upright: the picture is small, so every line (narration and speech) goes in a
+  // stack under it instead of on top of the art, where it would cover the characters.
+  const upright = typeof matchMedia !== 'undefined' && matchMedia(UPRIGHT).matches;
+  const talk = upright ? el('div', { className: 'shot-talk' }) : null;
   cam.innerHTML =
     shot.scene === 'title'
       ? `<div class="intro-title"><span>${(shot.title ?? ['DUCK', 'RUN'])[0]}</span><span>${(shot.title ?? ['DUCK', 'RUN'])[1]}</span></div>`
       : art[shot.scene];
-  node.appendChild(cam);
+  stage.appendChild(cam);
+  node.appendChild(stage);
 
   const anims: Animation[] = [];
   // The first move on an element also holds its start pose before it begins; later moves on the same
@@ -106,22 +117,26 @@ function playShot(shot: Shot, frame: HTMLElement, art: Record<string, string>): 
         el('span', { text: line.text }),
       ]);
       const [x, y] = line.at ?? [50, 15];
-      box.style.left = `${x}%`;
-      box.style.top = `${y}%`;
+      if (!talk) {
+        box.style.left = `${x}%`;
+        box.style.top = `${y}%`;
+      }
+      (talk ?? stage).appendChild(box);
     } else {
       box = el('div', { className: `subtitle n${captions++}`, text: line.text });
+      (talk ?? node).appendChild(box);
     }
-    node.appendChild(box);
     anims.push(box.animate([{ transform: 'scale(0.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], opts(line.t, 0.25, OUT_BACK)));
   }
   if (shot.fx) {
     const fx = el('div', { className: 'fx', text: shot.fx.text });
     fx.style.left = `${shot.fx.at[0]}%`;
     fx.style.top = `${shot.fx.at[1]}%`;
-    node.appendChild(fx);
+    stage.appendChild(fx);
     anims.push(fx.animate([{ transform: 'scale(0.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], opts(shot.fx.t, 0.3, SLAM)));
   }
 
+  if (talk) node.appendChild(talk);
   frame.appendChild(node);
   return { node, anims };
 }
