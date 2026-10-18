@@ -536,6 +536,7 @@ html {
 }
 
 .shot { position: absolute; inset: 0; }
+.shot-stage { position: absolute; inset: 0; overflow: hidden; }
 
 .shot-cam {
   position: absolute;
@@ -679,6 +680,8 @@ html {
 .intro.held .shot .subtitle,
 .intro.held .shot .bubble,
 .intro.held .shot .fx { opacity: 0 !important; transition: opacity 0.3s; }
+/* The big YOU WIN! title would peek out around the results card: let the card have the frame. */
+.intro.held .intro-title { opacity: 0; transition: opacity 0.3s; }
 
 .film .panel.end-card {
   z-index: 2;
@@ -921,4 +924,58 @@ html {
   .intro .film .card.end-card .verdict { font-size: 22px; }
   .intro .film .card.end-card .my-score { font-size: 30px; }
   .intro .film .card.end-card button.big { margin-top: 10px; padding: 12px 14px; font-size: 16px; }
+}
+
+/* A phone held upright: the film fills the screen, the 16:9 picture sits in the upper middle, and
+   every line of the story stacks underneath it in big type (film.ts puts them in .shot-talk), so the
+   words never cover the characters and are easy to read. */
+@media (max-aspect-ratio: 4/5) {
+  .film {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+  }
+
+  .shot-stage {
+    inset: auto 0;
+    top: 34%;
+    height: calc(100vw * 9 / 16);
+    translate: 0 -50%;
+  }
+
+  .shot-talk {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: calc(34% + 100vw * 9 / 32 + 18px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .shot-talk .subtitle,
+  .shot-talk .bubble {
+    position: static;
+    translate: none;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .shot-talk .subtitle { font-size: 19px; }
+  .shot-talk .bubble { font-size: 21px; }
+
+  /* The speech bubble's tail points up at the picture. */
+  .shot-talk .bubble::after {
+    bottom: auto;
+    top: -18px;
+    left: 50%;
+    right: auto;
+    border-top-color: transparent;
+    border-bottom: 14px solid #111;
+    translate: -50% 0;
+  }
+
+  .shot.scene-title .shot-talk .subtitle { white-space: normal; translate: none; }
+  .intro-title { font-size: 15vw; -webkit-text-stroke-width: 3px; }
 }
