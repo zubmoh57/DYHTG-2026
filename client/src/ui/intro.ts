@@ -67,7 +67,7 @@ export const SHOTS: Shot<SceneName>[] = [
     dur: 2.2,
     sound: 'bark',
     camera: ['scale(1)', 'scale(1.08)'],
-    fx: { text: 'WOOF!', at: [24, 22], t: 0.35 },
+    fx: { text: 'WOOF!', at: [26, 40], t: 0.35 },
     moves: [
       { sel: '.a-dog', dur: 0.35, easing: OUT_BACK, frames: [{ transform: 'scale(0.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }] },
       { sel: '.a-dog', start: 0.35, dur: 0.12, iterations: 5, frames: shake(7) },
