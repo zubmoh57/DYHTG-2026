@@ -80,6 +80,11 @@ export const CONFIG = {
   flow: {
     countdownSec: 3,
     /**
+     * A room's first race starts this far ahead so every screen can watch the story together (Vansh).
+     * The server allows up to 15 s. Later races in the same room start after countdownSec.
+     */
+    storyStartSec: 15,
+    /**
      * Room races use the full course (1). Below 1 shortens every section for a quicker party race,
      * e.g. 0.5 for about 25 s before the boss.
      */
