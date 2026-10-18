@@ -307,6 +307,7 @@ button.big.start {
   }
   .title-logo {
     order: 0;
+    margin-top: 52px; /* clear of the sound button in the top-right corner */
   }
   .title-menu {
     order: 2;
@@ -1083,4 +1084,51 @@ body.touch #ui > .keys {
   text-align: center;
   font-family: 'Trebuchet MS', Arial, sans-serif;
   animation: none;
+}
+
+/* Small phones (e.g. 360x640): a shorter scene so the menu and the sound slider fit without scrolling. */
+@media (max-aspect-ratio: 1/1) and (max-height: 700px) {
+  .title-screen > div:first-child {
+    min-height: 100px;
+  }
+}
+
+/* A phone turned sideways (wide but short): logo on the left, a compact menu on the right, so the
+   whole title screen fits without scrolling. */
+@media (min-aspect-ratio: 1/1) and (max-height: 520px) {
+  .title-screen {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    align-content: center;
+    gap: 6px 16px;
+    padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  }
+  .title-logo {
+    margin: 0;
+    flex: 1 1 0;
+  }
+  .title-logo h1 {
+    font-size: clamp(40px, 12vh, 64px);
+  }
+  .title-menu {
+    margin: 0 44px 0 0; /* clear of the sound button in the top-right corner */
+    align-self: center;
+    width: min(340px, 46vw);
+    padding: 10px 12px 12px;
+  }
+  .title-menu input {
+    margin: 4px 0 8px;
+    padding: 8px 10px;
+  }
+  .lobby-screen .title-menu button.big {
+    margin-top: 6px;
+    padding: 9px 12px;
+    font-size: 15px;
+  }
+  .title-footer {
+    flex-basis: 100%;
+    margin: 0;
+  }
 }
