@@ -62,6 +62,8 @@ const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });
 let storyPlayedFor: number | null = null;
 /** The story plays once per visit in solo: later solo runs go straight in. */
 let storySeen = false;
+/** The story shown to a late joiner while they wait in the pond. */
+let catchUpStory: { stop(): void } | null = null;
 /** Races started in each room this visit, for the ROUND 2, ROUND 3… card. */
 const roundsIn = new Map<string, number>();
 
@@ -139,8 +141,20 @@ const lobby = mountLobby(ui, {
     storySeen = true;
     playIntro(ui, audio, runNow);
   },
+  // Joined a room after its first race (Vansh): you missed the story, so watch it now in the pond.
+  // It's skippable, and a race starting cuts it short.
+  onRoomHadRace: () => {
+    // This room has raced at least once, so the next start is at least round 2 here too.
+    const code = lobby.room()?.code;
+    if (code) roundsIn.set(code, Math.max(roundsIn.get(code) ?? 0, 1));
+    if (storySeen) return;
+    storySeen = true;
+    catchUpStory = playIntro(ui, audio, () => (catchUpStory = null));
+  },
   onRoomStart: (room, startAtEpochMs) => {
     lobby.hide();
+    catchUpStory?.stop();
+    catchUpStory = null;
     // A room's first race starts far enough ahead for the story (Vansh): every screen plays it on a
     // shared clock that ends exactly as the race begins. Once per start, never twice.
     const storyRace = startAtEpochMs - Date.now() > (CONFIG.flow.storyStartSec - 4) * 1000;
@@ -185,6 +199,12 @@ const lobby = mountLobby(ui, {
 });
 
 game.start();
+
+// Closing the tab or leaving the page leaves the room at once, so nobody lingers as a ghost duck.
+// (If that call can't get out in time, everyone else drops the player after 15 s without contact.)
+window.addEventListener('pagehide', () => {
+  if (lobby.room()) void rooms.leaveRoom().catch(() => {});
+});
 
 // Dev only: in a production build players can't skip stages from the URL.
 const jump = import.meta.env.DEV ? params.get('phase') : null;

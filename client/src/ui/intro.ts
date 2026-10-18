@@ -145,8 +145,8 @@ export interface IntroOptions {
 }
 
 /** Show the intro over `root`, then call onDone (after the last shot, a skip, or at endsAt). */
-export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): void {
-  playFilm(root, audio, SHOTS, SCENES, onDone, { ...options, music: 'intro' });
+export function playIntro(root: HTMLElement, audio: AudioHandle, onDone: () => void, options: IntroOptions = {}): { stop(): void } {
+  return playFilm(root, audio, SHOTS, SCENES, onDone, { ...options, music: 'intro' });
 }
 
 /** Before a rematch in a room: one quick title card, ROUND 2 and so on, ending on the shared start. */
