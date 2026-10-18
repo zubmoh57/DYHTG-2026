@@ -894,3 +894,31 @@ html {
   transform: translateX(-50%) scale(1);
   opacity: 1;
 }
+
+/* On a phone the film is a short 16:9 strip, so the end card would scroll inside it and hide its
+   button. Pin the card to the screen instead, and let only the standings list scroll. */
+.intro .film .end-card {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+}
+
+.intro .film .end-card > * { flex: none; }
+
+.intro .film .card.end-card .standings,
+.intro .film .card.end-card .scoreboard,
+.intro .film .card.end-card ul,
+.intro .film .card.end-card ol {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-height: 520px), (max-width: 520px) {
+  .intro .film .card.end-card { padding: 12px 14px; }
+  .intro .film .card.end-card .verdict { font-size: 22px; }
+  .intro .film .card.end-card .my-score { font-size: 30px; }
+  .intro .film .card.end-card button.big { margin-top: 10px; padding: 12px 14px; font-size: 16px; }
+}
