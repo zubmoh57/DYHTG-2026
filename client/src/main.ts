@@ -60,6 +60,8 @@ mountEndings(ui, game, audio);
 const runNow = () => game.startAttempt({ countdownEndsAt: performance.now() });
 /** The room start the story was last played for, so a repeated start announcement can't replay it. */
 let storyPlayedFor: number | null = null;
+/** Whether that start is the room's first race, the one with the story (and its extra time). */
+let storyRace = false;
 /** The story plays once per visit in solo: later solo runs go straight in. */
 let storySeen = false;
 /** The story shown to a late joiner while they wait in the pond. */
@@ -157,15 +159,21 @@ const lobby = mountLobby(ui, {
     catchUpStory = null;
     // A room's first race starts far enough ahead for the story (Vansh): every screen plays it on a
     // shared clock that ends exactly as the race begins. Once per start, never twice.
-    const storyRace = startAtEpochMs - Date.now() > (CONFIG.flow.storyStartSec - 4) * 1000;
+    // "First race" must come out the same on every screen, or a phone that heard about the start a
+    // few seconds late would skip the story's extra time and race ahead of everyone. So it's decided
+    // by the room's history (a race already seen here, or reported by the lobby), not by the timing.
+    const newStart = storyPlayedFor !== startAtEpochMs;
+    const round = (roundsIn.get(room.code) ?? 0) + (newStart ? 1 : 0);
+    if (newStart) {
+      storyPlayedFor = startAtEpochMs;
+      roundsIn.set(room.code, round);
+      storyRace = round === 1;
+    }
     // Convert the shared wall-clock start time into this tab's performance.now() clock, so every
     // screen starts the race at the same moment. Story races all add the same extra time to read.
     const startsAt =
       performance.now() + (startAtEpochMs - Date.now()) + (storyRace ? CONFIG.flow.storyExtraSec * 1000 : 0);
-    if (storyPlayedFor !== startAtEpochMs) {
-      storyPlayedFor = startAtEpochMs;
-      const round = (roundsIn.get(room.code) ?? 0) + 1;
-      roundsIn.set(room.code, round);
+    if (newStart) {
       if (storyRace) {
         storySeen = true;
         playIntro(ui, audio, () => {}, { endsAt: startsAt });
