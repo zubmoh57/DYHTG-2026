@@ -222,6 +222,28 @@ html {
   opacity: 0.8;
 }
 
+/* "+5,000" under the score when a breadcrumb is picked up (hud.ts). */
+.hud .score-box {
+  position: relative;
+}
+
+.hud .score-pop {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  color: #ffd98a;
+  font-size: 22px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: score-pop 0.9s ease-out forwards;
+}
+
+@keyframes score-pop {
+  from { transform: translateY(8px) scale(0.6); opacity: 0; }
+  20% { transform: translateY(0) scale(1.15); opacity: 1; }
+  to { transform: translateY(-12px) scale(1); opacity: 0; }
+}
+
 .hud .boss {
   position: absolute;
   top: 44px;

@@ -71,13 +71,25 @@ export function mountHud(root: HTMLElement, game: Game): void {
     el('div', { className: 'boss-name' }, ['🎩 DON CRUMBS ', bossHp]),
     el('div', { className: 'boss-bar' }, [bossFill]),
   ]);
+  const scoreBox = el('div', { className: 'score-box' }, [time, score]);
   const hud = el('div', { className: 'hud' }, [
     el('div', {}, [lives, coins, power, stage]),
     coinTrack.element,
-    el('div', {}, [time, score]),
+    scoreBox,
     boss,
   ]);
   const keys = el('div', { className: 'keys' });
+
+  // A pickup's points (a breadcrumb) pop up under the score, so the jump is easy to see.
+  let pop: HTMLElement | null = null;
+  game.onEvent((event) => {
+    if (event.type !== 'scoreChanged' || event.delta <= 0 || !hud.isConnected) return;
+    pop?.remove();
+    const next = el('div', { className: 'score-pop', text: `+${event.delta.toLocaleString()}` });
+    next.addEventListener('animationend', () => next.remove());
+    scoreBox.appendChild(next);
+    pop = next;
+  });
 
   // Only touch the DOM when a value actually changes.
   const set = (node: HTMLElement, text: string) => {

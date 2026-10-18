@@ -65,7 +65,7 @@ export const CONFIG = {
   },
   score: {
     max: 300000, // confirmed cap (addendum §3); the database refuses anything above it
-    perBreadcrumb: 100, // Stage 2's breadcrumbs
+    perBreadcrumb: 5000, // Stage 2's breadcrumbs (15 per course, so up to 75,000)
     // The race score rooms are ranked by (RunState.raceScore). Tejas, for the multiplayer leaderboard.
     perSection: 25000, // each of the 4 sections, pro rata (the boss by damage dealt)
     perCoin: 250,
