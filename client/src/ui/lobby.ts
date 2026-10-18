@@ -286,7 +286,14 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
     const waiting = el('p', { className: 'waiting', text: 'Waiting for the host to start…' });
     const action = el('div', { className: 'pond-action' }, [error]);
     // Big-screen mode: on the laptop that's on the projector, watch the race instead of playing it.
-    const screenToggle = el('button', { className: 'screen-toggle' });
+    // A real on/off switch, only on the host's screen (Vansh).
+    const toggleState = el('span', { className: 'state' });
+    const screenToggle = el('button', { className: 'screen-toggle' }, [
+      el('span', { className: 'label', text: '📺 Big-screen mode' }),
+      el('span', { className: 'switch' }, [el('span', { className: 'knob' })]),
+      toggleState,
+    ]);
+    screenToggle.setAttribute('role', 'switch');
     onButton(screenToggle, () => {
       bigScreen = !bigScreen;
       saveBigScreen(bigScreen);
@@ -322,9 +329,9 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
           : 'Everyone starts on 0. Highest score wins.';
 
       const isHost = room?.isHost ?? false;
-      screenToggle.textContent = bigScreen
-        ? '📺 Big-screen mode: ON · this screen shows the race live'
-        : '📺 Big-screen mode: OFF · this screen plays too';
+      toggleState.textContent = bigScreen ? 'ON' : 'OFF';
+      screenToggle.setAttribute('aria-checked', String(bigScreen));
+      screenToggle.title = bigScreen ? 'This screen shows the race live' : 'This screen plays too';
       screenToggle.classList.toggle('on', bigScreen);
       const hint = bigScreen
         ? isHost
@@ -336,7 +343,7 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
       action.replaceChildren(
         ...(isHost ? [start] : [waiting]),
         el('p', { className: 'action-hint', text: hint }),
-        ...(isTouch() ? [] : [screenToggle]),
+        ...(isHost && !isTouch() ? [screenToggle] : []),
         error,
       );
     };
@@ -393,6 +400,7 @@ export function mountLobby(root: HTMLElement, options: LobbyOptions): LobbyHandl
       root.appendChild(screen);
     },
     room: () => room,
-    bigScreen: () => bigScreen,
+    // Only the host's screen can be the big screen.
+    bigScreen: () => bigScreen && (room?.isHost ?? false),
   };
 }
